@@ -579,6 +579,31 @@ adminRouter.patch("/disputes/:id", validate(updateDisputeSchema), async (req, re
     },
   });
 
+  // Notify consumer when dispute status changes or admin notes are added
+  const newStatus: string | undefined = req.body.status;
+  const statusMessages: Record<string, string> = {
+    UNDER_REVIEW: "Your dispute is now under review by admin.",
+    RESOLVED: "Your dispute has been resolved.",
+    REJECTED: "Your dispute has been reviewed and rejected by admin.",
+  };
+  const notifMessage = newStatus && statusMessages[newStatus]
+    ? `${statusMessages[newStatus]}${req.body.adminNotes ? ` Note: ${req.body.adminNotes}` : ""}`
+    : req.body.adminNotes
+      ? `Admin has added a note to your dispute: ${req.body.adminNotes}`
+      : null;
+
+  if (notifMessage) {
+    await prisma.notification.create({
+      data: {
+        userId: dispute.userId,
+        type: "SYSTEM_ALERT",
+        title: "Dispute Update",
+        message: notifMessage,
+        link: "/disputes",
+      },
+    });
+  }
+
   res.json({ dispute: updated });
 });
 

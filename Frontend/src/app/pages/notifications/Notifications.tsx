@@ -1,4 +1,5 @@
-import { Bell, BellOff, Trash2, CheckCheck, Zap, AlertTriangle, Receipt, Camera, Info, Clock } from 'lucide-react';
+import { useState } from 'react';
+import { BellOff, Trash2, CheckCheck, Zap, AlertTriangle, Receipt, Camera, Info, Clock, CheckCircle2, XCircle, Gauge } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import type { NotificationType } from '../../types';
 import { NOTIFICATION_TYPE_STYLES } from '../../constants/statusConfig';
@@ -14,37 +15,45 @@ const typeIcons: Record<NotificationType, React.ElementType> = {
   LOW_CONFIDENCE_READING: Camera,
   SYSTEM_ALERT: Info,
   READING_SUBMITTED: Zap,
+  ACCOUNT_APPROVED: CheckCircle2,
+  ACCOUNT_REJECTED: XCircle,
+  METER_APPROVED: Gauge,
+  METER_REJECTED: XCircle,
 };
+
+type TabKey = 'All' | 'Unread' | 'Alerts' | 'Billing';
+
+const ALERT_TYPES: NotificationType[] = ['ABNORMAL_USAGE', 'SYSTEM_ALERT', 'LOW_CONFIDENCE_READING'];
+const BILLING_TYPES: NotificationType[] = ['BILLING_GENERATED'];
 
 export default function Notifications() {
   const { markNotificationRead, markAllNotificationsRead, deleteNotification } = useApp();
   const { userNotifs: raw } = useUserNotifications();
-  const userNotifs = raw
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const [activeTab, setActiveTab] = useState<TabKey>('All');
 
-  const unread = userNotifs.filter(n => !n.isRead).length;
+  const sorted = raw.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-  const handleMarkAll = async () => {
-    await markAllNotificationsRead();
-  };
+  const userNotifs = sorted.filter(n => {
+    if (activeTab === 'Unread') return !n.isRead;
+    if (activeTab === 'Alerts') return ALERT_TYPES.includes(n.type);
+    if (activeTab === 'Billing') return BILLING_TYPES.includes(n.type);
+    return true;
+  });
 
-  const handleMarkRead = async (id: string) => {
-    await markNotificationRead(id);
-  };
+  const unread = sorted.filter(n => !n.isRead).length;
 
-  const handleDelete = async (id: string) => {
-    await deleteNotification(id);
-  };
+  const handleMarkAll = async () => { await markAllNotificationsRead(); };
+  const handleMarkRead = async (id: string) => { await markNotificationRead(id); };
+  const handleDelete = async (id: string) => { await deleteNotification(id); };
 
   return (
     <div className="max-w-3xl space-y-6">
-      {/* Header */}
       <PageHeader
         title="Notifications"
         subtitle={unread > 0 ? `${unread} unread notification${unread > 1 ? 's' : ''}` : 'All caught up!'}
         actions={unread > 0 ? (
           <button
-            onClick={handleMarkAll}
+            onClick={() => void handleMarkAll()}
             className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-sm font-medium transition-colors"
           >
             <CheckCheck size={16} className="text-blue-600" />
@@ -55,8 +64,14 @@ export default function Notifications() {
 
       {/* Filter tabs */}
       <div className="flex gap-2 bg-white border border-slate-200 rounded-xl p-1 w-fit">
-        {['All', 'Unread', 'Alerts', 'Billing'].map(tab => (
-          <button key={tab} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'All' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}>
+        {(['All', 'Unread', 'Alerts', 'Billing'] as TabKey[]).map(tab => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              activeTab === tab ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
             {tab}
             {tab === 'Unread' && unread > 0 && (
               <span className="ml-1.5 bg-red-500 text-white text-xs rounded-full w-4 h-4 inline-flex items-center justify-center">{unread}</span>

@@ -364,6 +364,23 @@ readingsRouter.post("/:id/review", requireRole(["ADMIN"]), validate(reviewSchema
     },
   });
 
+  // Notify the meter owner
+  const meterLabel = reading.meter.meterLabel ?? reading.meter.meterSerial;
+  if (reading.meter.userId) {
+    const isAccepted = req.body.action === "ACCEPT";
+    await prisma.notification.create({
+      data: {
+        userId: reading.meter.userId,
+        type: "READING_SUBMITTED",
+        title: isAccepted ? "Reading Approved" : "Reading Rejected",
+        message: isAccepted
+          ? `Your meter reading for ${meterLabel} has been approved by admin.`
+          : `Your meter reading for ${meterLabel} was rejected. ${req.body.notes ? `Reason: ${req.body.notes}` : ""}`.trim(),
+        link: "/meters",
+      },
+    });
+  }
+
   const refreshed = await prisma.reading.findUnique({ where: { id }, include: { meter: true } });
   res.json({ reading: toReadingDto(refreshed!, reading.meter) });
 });

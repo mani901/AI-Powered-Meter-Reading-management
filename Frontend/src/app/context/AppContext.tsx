@@ -63,7 +63,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (!currentUser) return;
     const [metersRes, notificationsRes, tariffsRes] = await Promise.all([
       apiFetch<{ data: Meter[] }>('/api/meters?limit=200'),
-      apiFetch<{ data: Notification[] }>('/api/notifications?limit=200'),
+      apiFetch<{ data: Notification[] }>('/api/notifications?limit=100'),
       apiFetch<{ tariffs: Tariff[] }>(currentUser.role === 'ADMIN' ? '/api/tariffs/all' : '/api/tariffs'),
     ]);
     setMeters(metersRes.data);

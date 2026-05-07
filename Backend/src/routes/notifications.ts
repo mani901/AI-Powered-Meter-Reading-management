@@ -5,18 +5,32 @@ import { ForbiddenError, NotFoundError } from "../lib/errors.js";
 import { toPaginatedResponse, toPagination } from "../lib/response.js";
 import type { Prisma, NotificationType } from "../generated/prisma/client.js";
 
+const VALID_NOTIFICATION_TYPES = new Set<string>([
+  "READING_REMINDER",
+  "ABNORMAL_USAGE",
+  "BILLING_GENERATED",
+  "LOW_CONFIDENCE_READING",
+  "SYSTEM_ALERT",
+  "READING_SUBMITTED",
+  "ACCOUNT_APPROVED",
+  "ACCOUNT_REJECTED",
+  "METER_APPROVED",
+  "METER_REJECTED",
+]);
+
 export const notificationsRouter = Router();
 notificationsRouter.use(requireAuth);
 
 notificationsRouter.get("/", async (req, res) => {
   const { page, limit, skip } = toPagination(req.query);
   const isRead = typeof req.query.isRead === "string" ? req.query.isRead : undefined;
-  const type = typeof req.query.type === "string" ? req.query.type : undefined;
+  const rawType = typeof req.query.type === "string" ? req.query.type : undefined;
+  const type = rawType && VALID_NOTIFICATION_TYPES.has(rawType) ? (rawType as NotificationType) : undefined;
 
   const where: Prisma.NotificationWhereInput = {
     userId: req.user!.id,
     ...(isRead === "true" ? { isRead: true } : isRead === "false" ? { isRead: false } : {}),
-    ...(type ? { type: type as NotificationType } : {}),
+    ...(type ? { type } : {}),
   };
 
   const [total, rows] = await Promise.all([
