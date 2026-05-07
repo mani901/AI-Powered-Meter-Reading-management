@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 
 export default function ManualReading() {
   const navigate = useNavigate();
-  const { currentUser, meters, readings, addReading, addNotification } = useApp();
+  const { currentUser, meters, addReading } = useApp();
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [form, setForm] = useState({ meterId: '', readingValue: '', readingDate: new Date().toISOString().split('T')[0], notes: '' });
@@ -43,37 +43,32 @@ export default function ManualReading() {
     if (warning && !confirm('There is an anomaly with this reading. Do you want to proceed?')) return;
 
     setLoading(true);
-    await new Promise(r => setTimeout(r, 600));
+    try {
+      const lastReading = selectedMeter?.lastReadingValue ?? undefined;
+      const consumption = lastReading !== undefined ? parseFloat(form.readingValue) - lastReading : undefined;
 
-    const lastReading = selectedMeter?.lastReadingValue ?? undefined;
-    const consumption = lastReading !== undefined ? parseFloat(form.readingValue) - lastReading : undefined;
+      await addReading({
+        meterId: form.meterId,
+        meterSerial: selectedMeter?.meterSerial,
+        meterLabel: selectedMeter?.meterLabel,
+        userId: currentUser.id,
+        readingValue: parseFloat(form.readingValue),
+        previousReading: lastReading,
+        consumption: consumption !== undefined ? consumption : undefined,
+        readingDate: form.readingDate,
+        source: 'MANUAL',
+        status: 'ACCEPTED',
+        isAnomalous: parseFloat(form.readingValue) < (lastReading ?? 0),
+        anomalyReason: parseFloat(form.readingValue) < (lastReading ?? 0) ? 'Manual reading lower than previous reading' : undefined,
+      });
 
-    addReading({
-      meterId: form.meterId,
-      meterSerial: selectedMeter?.meterSerial,
-      meterLabel: selectedMeter?.meterLabel,
-      userId: currentUser.id,
-      readingValue: parseFloat(form.readingValue),
-      previousReading: lastReading,
-      consumption: consumption !== undefined ? consumption : undefined,
-      readingDate: form.readingDate,
-      source: 'MANUAL',
-      status: 'ACCEPTED',
-      isAnomalous: parseFloat(form.readingValue) < (lastReading ?? 0),
-      anomalyReason: parseFloat(form.readingValue) < (lastReading ?? 0) ? 'Manual reading lower than previous reading' : undefined,
-    });
-
-    addNotification({
-      userId: currentUser.id,
-      type: 'READING_SUBMITTED',
-      title: 'Manual Reading Submitted',
-      message: `Manual reading of ${Number(form.readingValue).toLocaleString()} for ${selectedMeter?.meterLabel ?? selectedMeter?.meterSerial} has been recorded.`,
-      isRead: false,
-    });
-
-    setLoading(false);
-    setSubmitted(true);
-    toast.success('Manual reading submitted successfully!');
+      toast.success('Manual reading submitted successfully!');
+      setSubmitted(true);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to submit reading.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (submitted) {

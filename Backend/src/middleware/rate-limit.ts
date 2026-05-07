@@ -24,5 +24,6 @@ export function createLimiter(options: { windowMs: number; limit: number }) {
     ...options,
     standardHeaders: true,
     legacyHeaders: false,
+    skip: () => env.NODE_ENV === "test",
   });
 }

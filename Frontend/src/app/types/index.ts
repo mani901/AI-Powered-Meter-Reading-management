@@ -1,5 +1,5 @@
 export type UserRole = 'ADMIN' | 'CONSUMER';
-export type MeterStatus = 'ACTIVE' | 'INACTIVE' | 'FAULTY';
+export type MeterStatus = 'PENDING' | 'ACTIVE' | 'INACTIVE' | 'FAULTY' | 'REJECTED';
 export type ReadingSource = 'AI_EXTRACTED' | 'MANUAL' | 'AI_CORRECTED';
 export type ReadingStatus = 'ACCEPTED' | 'FLAGGED' | 'REJECTED' | 'PENDING_REVIEW';
 export type BillStatus = 'ESTIMATED' | 'CONFIRMED' | 'PAID' | 'OVERDUE';
@@ -9,12 +9,16 @@ export type NotificationType =
   | 'BILLING_GENERATED'
   | 'LOW_CONFIDENCE_READING'
   | 'SYSTEM_ALERT'
-  | 'READING_SUBMITTED';
+  | 'READING_SUBMITTED'
+  | 'ACCOUNT_APPROVED'
+  | 'ACCOUNT_REJECTED'
+  | 'METER_APPROVED'
+  | 'METER_REJECTED';
 
 export interface User {
   id: string;
   email: string;
-  password: string;
+  password?: string;
   firstName: string;
   lastName: string;
   phone?: string;
@@ -23,6 +27,8 @@ export interface User {
   role: UserRole;
   avatarUrl?: string;
   isActive: boolean;
+  isPendingApproval?: boolean;
+  rejectionReason?: string;
   isEmailVerified: boolean;
   lastLoginAt?: string;
   createdAt: string;

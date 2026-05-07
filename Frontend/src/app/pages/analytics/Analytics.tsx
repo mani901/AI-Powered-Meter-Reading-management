@@ -1,12 +1,11 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import {
   BarChart, Bar, LineChart, Line, AreaChart, Area,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  Legend, ReferenceLine,
+  ReferenceLine,
 } from 'recharts';
 import { TrendingUp, TrendingDown, Minus, Zap, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { MONTHLY_CONSUMPTION_DATA } from '../../data/mockData';
 import { PageHeader } from '../../components/common/PageHeader';
 import { ChartTooltip } from '../../components/common/ChartTooltip';
 
@@ -16,15 +15,39 @@ export default function Analytics() {
   const [selectedMeter, setSelectedMeter] = useState('ALL');
 
   const userMeters = meters.filter(m => m.userId === currentUser?.id);
-  const data = MONTHLY_CONSUMPTION_DATA.slice(-parseInt(period));
-  const avg = Math.round(data.reduce((sum, d) => sum + d.consumption, 0) / data.length);
-  const latest = data[data.length - 1];
+  const filteredReadings = readings
+    .filter(r => r.userId === currentUser?.id)
+    .filter(r => selectedMeter === 'ALL' || r.meterId === selectedMeter);
+
+  const now = new Date();
+  const monthBuckets = Array.from({ length: 12 }).map((_, idx) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - (11 - idx), 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    return {
+      key,
+      month: d.toLocaleDateString('en-US', { month: 'short' }),
+      consumption: 0,
+      cost: 0,
+    };
+  });
+  filteredReadings.forEach(reading => {
+    const rd = new Date(reading.readingDate);
+    const key = `${rd.getFullYear()}-${String(rd.getMonth() + 1).padStart(2, '0')}`;
+    const bucket = monthBuckets.find(b => b.key === key);
+    if (!bucket) return;
+    const usage = Math.max(0, reading.consumption ?? 0);
+    bucket.consumption += usage;
+    bucket.cost += usage * 14.5;
+  });
+  const data = monthBuckets.slice(-parseInt(period));
+  const avg = data.length ? Math.round(data.reduce((sum, d) => sum + d.consumption, 0) / data.length) : 0;
+  const latest = data[data.length - 1] ?? { consumption: 0, cost: 0, month: 'N/A' };
   const prev = data[data.length - 2];
   const changePercent = prev ? (((latest.consumption - prev.consumption) / prev.consumption) * 100).toFixed(1) : '0';
   const isUp = latest.consumption > prev?.consumption;
 
-  const highest = [...data].sort((a, b) => b.consumption - a.consumption)[0];
-  const lowest = [...data].sort((a, b) => a.consumption - b.consumption)[0];
+  const highest = [...data].sort((a, b) => b.consumption - a.consumption)[0] ?? latest;
+  const lowest = [...data].sort((a, b) => a.consumption - b.consumption)[0] ?? latest;
 
   // Trend detection
   const trend = data.slice(-4).every((d, i, arr) => i === 0 || d.consumption >= arr[i - 1].consumption) ? 'INCREASING'

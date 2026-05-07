@@ -10,6 +10,10 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
+    "types": [
+      "node",
+      "jest"
+    ],
     "sourceMap": true
   },
   "include": [

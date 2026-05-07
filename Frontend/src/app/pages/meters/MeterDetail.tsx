@@ -34,11 +34,15 @@ export default function MeterDetail() {
     );
   }
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (confirm(`Delete meter "${meter.meterLabel}"? All readings will also be removed.`)) {
-      deleteMeter(meter.id);
-      toast.success('Meter deleted');
-      navigate('/meters');
+      try {
+        await deleteMeter(meter.id);
+        toast.success('Meter deleted');
+        navigate('/meters');
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'Failed to delete meter.');
+      }
     }
   };
 

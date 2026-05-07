@@ -1,7 +1,10 @@
 import { createBrowserRouter } from 'react-router';
+import { Navigate } from 'react-router';
+import type { ComponentType } from 'react';
 import { DashboardLayout } from './components/layout/DashboardLayout';
 import { Root } from './Root';
 import { NotFound } from './NotFound';
+import { useApp } from './context/AppContext';
 
 // Public pages
 import Landing from './pages/Landing';
@@ -30,6 +33,15 @@ import AdminUsers from './pages/admin/AdminUsers';
 import AdminReadings from './pages/admin/AdminReadings';
 import AdminTariffs from './pages/admin/AdminTariffs';
 import AdminReports from './pages/admin/AdminReports';
+import AdminApprovals from './pages/admin/AdminApprovals';
+
+function AdminRoute({ Component }: { Component: ComponentType }) {
+  const { currentUser, loadingAuth } = useApp();
+  if (loadingAuth) return null;
+  if (!currentUser) return <Navigate to="/login" replace />;
+  if (currentUser.role !== 'ADMIN') return <Navigate to="/dashboard" replace />;
+  return <Component />;
+}
 
 export const router = createBrowserRouter([
   {
@@ -57,11 +69,12 @@ export const router = createBrowserRouter([
           { path: 'profile', Component: Profile },
           { path: 'settings', Component: Settings },
           // Admin routes (inside same DashboardLayout)
-          { path: 'admin', Component: AdminDashboard },
-          { path: 'admin/users', Component: AdminUsers },
-          { path: 'admin/readings', Component: AdminReadings },
-          { path: 'admin/tariffs', Component: AdminTariffs },
-          { path: 'admin/reports', Component: AdminReports },
+          { path: 'admin', Component: () => <AdminRoute Component={AdminDashboard} /> },
+          { path: 'admin/approvals', Component: () => <AdminRoute Component={AdminApprovals} /> },
+          { path: 'admin/users', Component: () => <AdminRoute Component={AdminUsers} /> },
+          { path: 'admin/readings', Component: () => <AdminRoute Component={AdminReadings} /> },
+          { path: 'admin/tariffs', Component: () => <AdminRoute Component={AdminTariffs} /> },
+          { path: 'admin/reports', Component: () => <AdminRoute Component={AdminReports} /> },
         ],
       },
       { path: '*', Component: NotFound },

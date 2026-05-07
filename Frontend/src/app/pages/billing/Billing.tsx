@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Receipt, Download, CheckCircle2, Clock, AlertTriangle, CreditCard } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { MOCK_TARIFFS, calculateBillBreakdown } from '../../data/mockData';
 import { toast } from 'sonner';
 import { PageHeader } from '../../components/common/PageHeader';
+import { apiFetchBlob } from '../../lib/apiClient';
+import type { Tariff } from '../../types';
 
 const statusConfig = {
   ESTIMATED: { label: 'Estimated', color: 'bg-blue-100 text-blue-700', icon: Clock },
@@ -15,7 +16,7 @@ const statusConfig = {
 
 export default function Billing() {
   const navigate = useNavigate();
-  const { currentUser, bills, meters } = useApp();
+  const { currentUser, bills, meters, tariffs } = useApp();
   const [selectedMeter, setSelectedMeter] = useState('m1');
 
   const userBills = bills.filter(b => b.userId === currentUser?.id).sort((a, b) =>
@@ -25,7 +26,25 @@ export default function Billing() {
   const currentBill = userBills.find(b => b.meterId === selectedMeter && b.status === 'ESTIMATED')
     || userBills.find(b => b.meterId === selectedMeter);
 
-  const breakdown = currentBill ? calculateBillBreakdown(currentBill.unitsConsumed, MOCK_TARIFFS) : null;
+  const breakdown = currentBill ? calculateLiveBillBreakdown(currentBill.unitsConsumed, tariffs) : null;
+
+  const downloadBillPdf = async (billingMonth?: string) => {
+    try {
+      const query = new URLSearchParams();
+      if (billingMonth) {
+        query.set('from', `${billingMonth}-01`);
+        query.set('to', `${billingMonth}-31`);
+      }
+
+      const response = await apiFetchBlob(`/api/export/bills.pdf${query.toString() ? `?${query.toString()}` : ''}`);
+      const blob = await response.blob();
+      const filename = getFilenameFromHeader(response.headers.get('content-disposition')) ?? `bills-${billingMonth ?? 'all'}.pdf`;
+      triggerDownload(blob, filename);
+      toast.success('Bill PDF downloaded successfully.');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to download bill PDF.');
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -152,7 +171,7 @@ export default function Billing() {
 
                 <div className="flex gap-3 mt-5">
                   <button
-                    onClick={() => toast.success('PDF downloaded! (Demo)')}
+                    onClick={() => void downloadBillPdf(currentBill.billingMonth)}
                     className="flex-1 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 py-2.5 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-colors"
                   >
                     <Download size={15} /> Download PDF
@@ -181,7 +200,7 @@ export default function Billing() {
           <div className="bg-white border border-slate-200 rounded-xl p-5">
             <h3 className="font-semibold text-slate-900 mb-4">NEPRA Tariff Slabs</h3>
             <div className="space-y-2">
-              {MOCK_TARIFFS.filter(t => t.isActive && t.name.startsWith('Residential')).map(t => (
+              {tariffs.filter(t => t.isActive && t.name.startsWith('Residential')).map(t => (
                 <div key={t.id} className="flex items-center justify-between text-xs">
                   <span className="text-slate-600">{t.minUnits}–{t.maxUnits ?? '∞'} units</span>
                   <span className="font-medium text-slate-900 font-mono">PKR {t.ratePerUnit}/kWh</span>
@@ -250,7 +269,7 @@ export default function Billing() {
                       {b.dueDate ? new Date(b.dueDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : '—'}
                     </td>
                     <td className="px-5 py-3">
-                      <button onClick={() => toast.success('PDF downloaded! (Demo)')} className="text-blue-600 hover:text-blue-700 p-1 rounded">
+                      <button onClick={() => void downloadBillPdf(b.billingMonth)} className="text-blue-600 hover:text-blue-700 p-1 rounded">
                         <Download size={15} />
                       </button>
                     </td>
@@ -263,4 +282,53 @@ export default function Billing() {
       </div>
     </div>
   );
+}
+
+function calculateLiveBillBreakdown(units: number, tariffs: Tariff[]) {
+  const activeTariffs = tariffs.filter(t => t.isActive).sort((a, b) => a.minUnits - b.minUnits);
+  const slabs: { slab: string; units: number; rate: number; amount: number }[] = [];
+  let remainingUnits = Math.max(0, Math.floor(units));
+  let energyCharges = 0;
+
+  for (const tariff of activeTariffs) {
+    if (remainingUnits <= 0) break;
+    const slabCapacity = tariff.maxUnits ? tariff.maxUnits - tariff.minUnits + 1 : remainingUnits;
+    const unitsInSlab = Math.min(remainingUnits, slabCapacity);
+    const amount = unitsInSlab * tariff.ratePerUnit;
+    slabs.push({
+      slab: tariff.maxUnits ? `${tariff.minUnits}-${tariff.maxUnits}` : `${tariff.minUnits}+`,
+      units: unitsInSlab,
+      rate: tariff.ratePerUnit,
+      amount,
+    });
+    energyCharges += amount;
+    remainingUnits -= unitsInSlab;
+  }
+
+  const fixedCharges = activeTariffs[0]?.fixedCharges ?? 150;
+  const fuelAdjustment = units * (activeTariffs[0]?.fuelAdjustment ?? 3.23);
+  const subtotal = energyCharges + fixedCharges + fuelAdjustment;
+  const taxAmount = subtotal * ((activeTariffs[0]?.taxPercentage ?? 17) / 100);
+  const totalAmount = subtotal + taxAmount;
+
+  return { slabs, energyCharges, fixedCharges, fuelAdjustment, taxAmount, totalAmount };
+}
+
+function triggerDownload(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function getFilenameFromHeader(contentDisposition: string | null) {
+  if (!contentDisposition) return null;
+  const utfMatch = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+  if (utfMatch?.[1]) return decodeURIComponent(utfMatch[1]);
+  const asciiMatch = contentDisposition.match(/filename="?([^"]+)"?/i);
+  return asciiMatch?.[1] ?? null;
 }

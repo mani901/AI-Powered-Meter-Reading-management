@@ -20,14 +20,22 @@ export default function AdminUsers() {
       `${u.firstName} ${u.lastName}`.toLowerCase().includes(search.toLowerCase())
     );
 
-  const handleStatusToggle = (userId: string, currentStatus: boolean, name: string) => {
-    updateUserStatus(userId, !currentStatus);
-    toast.success(`${name} has been ${!currentStatus ? 'activated' : 'deactivated'}`);
+  const handleStatusToggle = async (userId: string, currentStatus: boolean, name: string) => {
+    try {
+      await updateUserStatus(userId, !currentStatus);
+      toast.success(`${name} has been ${!currentStatus ? 'activated' : 'deactivated'}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to update user status.');
+    }
   };
 
-  const handleRoleChange = (userId: string, newRole: 'ADMIN' | 'CONSUMER', name: string) => {
-    updateUserRole(userId, newRole);
-    toast.success(`${name}'s role changed to ${newRole}`);
+  const handleRoleChange = async (userId: string, newRole: 'ADMIN' | 'CONSUMER', name: string) => {
+    try {
+      await updateUserRole(userId, newRole);
+      toast.success(`${name}'s role changed to ${newRole}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to update user role.');
+    }
   };
 
   return (
@@ -113,14 +121,14 @@ export default function AdminUsers() {
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => handleStatusToggle(u.id, u.isActive, `${u.firstName} ${u.lastName}`)}
+                        onClick={() => void handleStatusToggle(u.id, u.isActive, `${u.firstName} ${u.lastName}`)}
                         className={`p-1.5 rounded-lg transition-colors ${u.isActive ? 'text-red-500 hover:bg-red-50' : 'text-green-600 hover:bg-green-50'}`}
                         title={u.isActive ? 'Deactivate' : 'Activate'}
                       >
                         {u.isActive ? <UserX size={16} /> : <UserCheck size={16} />}
                       </button>
                       <button
-                        onClick={() => handleRoleChange(u.id, u.role === 'ADMIN' ? 'CONSUMER' : 'ADMIN', `${u.firstName} ${u.lastName}`)}
+                        onClick={() => void handleRoleChange(u.id, u.role === 'ADMIN' ? 'CONSUMER' : 'ADMIN', `${u.firstName} ${u.lastName}`)}
                         className="p-1.5 rounded-lg text-purple-600 hover:bg-purple-50 transition-colors"
                         title={`Change to ${u.role === 'ADMIN' ? 'Consumer' : 'Admin'}`}
                       >

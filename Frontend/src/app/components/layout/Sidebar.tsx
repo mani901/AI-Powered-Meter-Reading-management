@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Gauge, Camera, Clock, BarChart3, Receipt,
   Bell, Download, User, Settings, ShieldCheck, LogOut,
   ChevronLeft, ChevronRight, Zap, Users, AlertTriangle,
-  DollarSign, FileText,
+  DollarSign, FileText, ClipboardCheck,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
@@ -28,6 +28,7 @@ const navItems: NavItem[] = [
 
 const adminItems: NavItem[] = [
   { label: 'Admin Dashboard', path: '/admin', icon: ShieldCheck, adminOnly: true },
+  { label: 'Approvals', path: '/admin/approvals', icon: ClipboardCheck, adminOnly: true },
   { label: 'Users', path: '/admin/users', icon: Users, adminOnly: true },
   { label: 'Flagged Readings', path: '/admin/readings', icon: AlertTriangle, adminOnly: true },
   { label: 'Tariffs', path: '/admin/tariffs', icon: DollarSign, adminOnly: true },
@@ -35,12 +36,13 @@ const adminItems: NavItem[] = [
 ];
 
 export function Sidebar() {
-  const { currentUser, unreadCount, isSidebarCollapsed, toggleSidebar, logout } = useApp();
+  const { currentUser, unreadCount, pendingUsersCount, pendingMetersCount, isSidebarCollapsed, toggleSidebar, logout } = useApp();
+  const totalPendingApprovals = pendingUsersCount + pendingMetersCount;
   const navigate = useNavigate();
   const isAdmin = currentUser?.role === 'ADMIN';
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate('/login');
   };
 
@@ -138,7 +140,16 @@ export function Sidebar() {
                   }
                 >
                   <item.icon size={18} className="flex-shrink-0" />
-                  {!isSidebarCollapsed && <span>{item.label}</span>}
+                  {!isSidebarCollapsed && (
+                    <>
+                      <span className="flex-1">{item.label}</span>
+                      {item.path === '/admin/approvals' && totalPendingApprovals > 0 && (
+                        <span className="bg-amber-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium">
+                          {totalPendingApprovals > 9 ? '9+' : totalPendingApprovals}
+                        </span>
+                      )}
+                    </>
+                  )}
                 </NavLink>
               ))}
             </>

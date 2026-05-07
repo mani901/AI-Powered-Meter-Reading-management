@@ -24,6 +24,18 @@ export default function Notifications() {
 
   const unread = userNotifs.filter(n => !n.isRead).length;
 
+  const handleMarkAll = async () => {
+    await markAllNotificationsRead();
+  };
+
+  const handleMarkRead = async (id: string) => {
+    await markNotificationRead(id);
+  };
+
+  const handleDelete = async (id: string) => {
+    await deleteNotification(id);
+  };
+
   return (
     <div className="max-w-3xl space-y-6">
       {/* Header */}
@@ -32,7 +44,7 @@ export default function Notifications() {
         subtitle={unread > 0 ? `${unread} unread notification${unread > 1 ? 's' : ''}` : 'All caught up!'}
         actions={unread > 0 ? (
           <button
-            onClick={markAllNotificationsRead}
+            onClick={handleMarkAll}
             className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-sm font-medium transition-colors"
           >
             <CheckCheck size={16} className="text-blue-600" />
@@ -100,14 +112,14 @@ export default function Notifications() {
                 <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-100">
                   {!n.isRead && (
                     <button
-                      onClick={() => markNotificationRead(n.id)}
+                      onClick={() => void handleMarkRead(n.id)}
                       className="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1 transition-colors"
                     >
                       <CheckCheck size={12} /> Mark as read
                     </button>
                   )}
                   <button
-                    onClick={() => deleteNotification(n.id)}
+                    onClick={() => void handleDelete(n.id)}
                     className="text-xs text-red-500 hover:text-red-600 font-medium flex items-center gap-1 ml-auto transition-colors"
                   >
                     <Trash2 size={12} /> Delete

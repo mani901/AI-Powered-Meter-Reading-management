@@ -38,22 +38,26 @@ export default function AddMeter() {
     e.preventDefault();
     if (!validate() || !currentUser) return;
     setLoading(true);
-    await new Promise(r => setTimeout(r, 800));
-    addMeter({
-      userId: currentUser.id,
-      meterSerial: form.meterSerial.toUpperCase(),
-      meterLabel: form.meterLabel || undefined,
-      meterType: form.meterType,
-      installationDate: form.installationDate || undefined,
-      location: form.location || undefined,
-      status: 'ACTIVE',
-      maxDigits: parseInt(form.maxDigits) || 5,
-      initialReading: form.initialReading ? parseFloat(form.initialReading) : undefined,
-      lastReadingValue: form.initialReading ? parseFloat(form.initialReading) : undefined,
-    });
-    setLoading(false);
-    toast.success('Meter registered successfully!');
-    navigate('/meters');
+    try {
+      await addMeter({
+        userId: currentUser.id,
+        meterSerial: form.meterSerial.toUpperCase(),
+        meterLabel: form.meterLabel || undefined,
+        meterType: form.meterType,
+        installationDate: form.installationDate || undefined,
+        location: form.location || undefined,
+        status: 'PENDING',
+        maxDigits: parseInt(form.maxDigits) || 5,
+        initialReading: form.initialReading ? parseFloat(form.initialReading) : undefined,
+        lastReadingValue: form.initialReading ? parseFloat(form.initialReading) : undefined,
+      });
+      toast.success('Meter submitted for approval! You will be notified once an admin approves it.');
+      navigate('/meters');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to add meter.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const inputClass = (field: keyof FormData) =>
@@ -156,15 +160,15 @@ export default function AddMeter() {
         </div>
 
         {/* Info box */}
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
           <div className="flex items-start gap-3">
-            <CheckCircle2 size={18} className="text-blue-600 flex-shrink-0 mt-0.5" />
-            <div className="text-sm text-blue-700">
-              <p className="font-medium mb-1">After adding your meter:</p>
-              <ul className="space-y-0.5 text-xs text-blue-600">
-                <li>• You can upload meter images for AI-powered reading extraction</li>
-                <li>• Track monthly consumption and view analytics</li>
-                <li>• Receive automatic billing estimates based on NEPRA tariffs</li>
+            <CheckCircle2 size={18} className="text-amber-600 flex-shrink-0 mt-0.5" />
+            <div className="text-sm text-amber-700">
+              <p className="font-medium mb-1">Approval required</p>
+              <ul className="space-y-0.5 text-xs text-amber-600">
+                <li>• Your meter will be reviewed by an admin before activation</li>
+                <li>• You will receive a notification once it is approved or rejected</li>
+                <li>• After approval you can upload readings and view analytics</li>
               </ul>
             </div>
           </div>

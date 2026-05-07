@@ -5,27 +5,68 @@ import {
 } from 'lucide-react';
 import {
   BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis,
-  CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+  CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
-import { ADMIN_STATS, MOCK_AUDIT_LOGS } from '../../data/mockData';
-import { AUDIT_ACTION_BADGE } from '../../constants/statusConfig';
-import { timeAgo } from '../../utils/time';
 import { PageHeader } from '../../components/common/PageHeader';
 import { StatCard } from '../../components/common/StatCard';
+import { useApp } from '../../context/AppContext';
 
 const COLORS = ['#2563eb', '#10b981', '#f59e0b'];
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
-  const stats = ADMIN_STATS;
+  const { users, meters, readings, bills } = useApp();
+  const totalUsers = users.length;
+  const activeUsers = users.filter(u => u.isActive).length;
+  const totalMeters = meters.length;
+  const activeMeters = meters.filter(m => m.status === 'ACTIVE').length;
+  const readingsThisMonth = readings.filter(r => {
+    const d = new Date(r.readingDate);
+    const now = new Date();
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+  }).length;
+  const flaggedReadings = readings.filter(r => r.status === 'FLAGGED' || r.status === 'PENDING_REVIEW').length;
+  const pendingReviews = readings.filter(r => r.status === 'PENDING_REVIEW').length;
+  const avgConfidenceScore = readings.length
+    ? readings.reduce((sum, r) => sum + (r.confidenceScore ?? 0.5), 0) / readings.length
+    : 0;
+  const revenueThisMonth = bills
+    .filter(b => {
+      const d = new Date(b.billingMonth);
+      const now = new Date();
+      return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+    })
+    .reduce((sum, b) => sum + b.totalAmount, 0);
 
-  const pieData = [
-    { name: 'AI Extracted', value: stats.readingsBySource.AI_EXTRACTED },
-    { name: 'Manual', value: stats.readingsBySource.MANUAL },
-    { name: 'AI Corrected', value: stats.readingsBySource.AI_CORRECTED },
+  const readingsBySource = {
+    AI_EXTRACTED: readings.filter(r => r.source === 'AI_EXTRACTED').length,
+    MANUAL: readings.filter(r => r.source === 'MANUAL').length,
+    AI_CORRECTED: readings.filter(r => r.source === 'AI_CORRECTED').length,
+  };
+
+  const monthlyReadingTrend = Array.from({ length: 6 }).map((_, idx) => {
+    const d = new Date(new Date().getFullYear(), new Date().getMonth() - (5 - idx), 1);
+    const month = d.toLocaleDateString('en-US', { month: 'short' });
+    const count = readings.filter(r => {
+      const rd = new Date(r.readingDate);
+      return rd.getFullYear() === d.getFullYear() && rd.getMonth() === d.getMonth();
+    }).length;
+    return { month, readings: count };
+  });
+
+  const confidenceDistribution = [
+    { range: '90-100%', count: readings.filter(r => (r.confidenceScore ?? 0) >= 0.9).length },
+    { range: '80-89%', count: readings.filter(r => (r.confidenceScore ?? 0) >= 0.8 && (r.confidenceScore ?? 0) < 0.9).length },
+    { range: '70-79%', count: readings.filter(r => (r.confidenceScore ?? 0) >= 0.7 && (r.confidenceScore ?? 0) < 0.8).length },
+    { range: '60-69%', count: readings.filter(r => (r.confidenceScore ?? 0) >= 0.6 && (r.confidenceScore ?? 0) < 0.7).length },
+    { range: '0-59%', count: readings.filter(r => (r.confidenceScore ?? 0) < 0.6).length },
   ];
 
-  const actionColors = AUDIT_ACTION_BADGE;
+  const pieData = [
+    { name: 'AI Extracted', value: readingsBySource.AI_EXTRACTED },
+    { name: 'Manual', value: readingsBySource.MANUAL },
+    { name: 'AI Corrected', value: readingsBySource.AI_CORRECTED },
+  ];
 
   return (
     <div className="space-y-6">
@@ -39,17 +80,17 @@ export default function AdminDashboard() {
 
       {/* Stats grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={Users} label="Total Users" value={stats.totalUsers} sub={`${stats.activeUsers} active`} color="bg-blue-50 text-blue-600" change={{ value: '12 this month', up: true }} />
-        <StatCard icon={Gauge} label="Total Meters" value={stats.totalMeters} sub={`${stats.activeMeters} active`} color="bg-green-50 text-green-600" />
-        <StatCard icon={Camera} label="Readings This Month" value={stats.readingsThisMonth} sub="Total readings ever: 2,847" color="bg-purple-50 text-purple-600" change={{ value: '8.7%', up: true }} />
-        <StatCard icon={AlertTriangle} label="Flagged Readings" value={stats.flaggedReadings} sub={`${stats.pendingReviews} pending review`} color="bg-amber-50 text-amber-600" />
+        <StatCard icon={Users} label="Total Users" value={totalUsers} sub={`${activeUsers} active`} color="bg-blue-50 text-blue-600" />
+        <StatCard icon={Gauge} label="Total Meters" value={totalMeters} sub={`${activeMeters} active`} color="bg-green-50 text-green-600" />
+        <StatCard icon={Camera} label="Readings This Month" value={readingsThisMonth} sub={`Total readings ever: ${readings.length}`} color="bg-purple-50 text-purple-600" />
+        <StatCard icon={AlertTriangle} label="Flagged Readings" value={flaggedReadings} sub={`${pendingReviews} pending review`} color="bg-amber-50 text-amber-600" />
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={CheckCircle2} label="Avg. Confidence" value={`${(stats.avgConfidenceScore * 100).toFixed(0)}%`} sub="AI extraction accuracy" color="bg-teal-50 text-teal-600" />
-        <StatCard icon={DollarSign} label="Est. Revenue" value={`PKR ${(stats.revenueThisMonth / 1000).toFixed(0)}K`} sub="This month total bills" color="bg-emerald-50 text-emerald-600" />
+        <StatCard icon={CheckCircle2} label="Avg. Confidence" value={`${(avgConfidenceScore * 100).toFixed(0)}%`} sub="AI extraction accuracy" color="bg-teal-50 text-teal-600" />
+        <StatCard icon={DollarSign} label="Est. Revenue" value={`PKR ${(revenueThisMonth / 1000).toFixed(0)}K`} sub="This month total bills" color="bg-emerald-50 text-emerald-600" />
         <StatCard icon={TrendingUp} label="Monthly Growth" value="+13.5%" sub="vs last month" color="bg-indigo-50 text-indigo-600" />
-        <StatCard icon={Clock} label="Pending Reviews" value={stats.pendingReviews} sub="Flagged readings" color="bg-red-50 text-red-600" />
+        <StatCard icon={Clock} label="Pending Reviews" value={pendingReviews} sub="Flagged readings" color="bg-red-50 text-red-600" />
       </div>
 
       {/* Charts row */}
@@ -59,7 +100,7 @@ export default function AdminDashboard() {
           <h3 className="font-semibold text-slate-900 mb-1">Monthly Readings Volume</h3>
           <p className="text-slate-500 text-xs mb-5">Number of readings submitted per month</p>
           <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={stats.monthlyReadingTrend} barSize={30}>
+            <BarChart data={monthlyReadingTrend} barSize={30}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
               <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#94a3b8' }} tickLine={false} axisLine={false} />
               <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} tickLine={false} axisLine={false} />
@@ -99,9 +140,9 @@ export default function AdminDashboard() {
       <div className="bg-white border border-slate-200 rounded-xl p-6">
         <h3 className="font-semibold text-slate-900 mb-4">Confidence Score Distribution</h3>
         <div className="space-y-3">
-          {stats.confidenceDistribution.map(d => {
-            const total = stats.confidenceDistribution.reduce((sum, x) => sum + x.count, 0);
-            const pct = (d.count / total * 100).toFixed(1);
+          {confidenceDistribution.map(d => {
+            const total = confidenceDistribution.reduce((sum, x) => sum + x.count, 0);
+            const pct = total ? (d.count / total * 100).toFixed(1) : '0.0';
             const barColor = d.range.startsWith('9') ? 'bg-green-500' : d.range.startsWith('8') ? 'bg-teal-500' : d.range.startsWith('7') ? 'bg-amber-500' : d.range.startsWith('6') ? 'bg-orange-500' : 'bg-red-500';
             return (
               <div key={d.range} className="flex items-center gap-4">
@@ -118,21 +159,20 @@ export default function AdminDashboard() {
 
       {/* Recent activity + quick actions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent activity */}
         <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
             <h3 className="font-semibold text-slate-900">Recent Activity</h3>
-            <span className="text-slate-400 text-xs">Audit log</span>
+            <span className="text-slate-400 text-xs">Latest readings</span>
           </div>
           <div className="divide-y divide-slate-50">
-            {MOCK_AUDIT_LOGS.slice(0, 6).map(log => (
-              <div key={log.id} className="flex items-start gap-3 px-5 py-3">
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 mt-0.5 ${actionColors[log.action] || 'bg-slate-100 text-slate-600'}`}>
-                  {log.action.replace(/_/g, ' ')}
+            {readings.slice(0, 6).map(reading => (
+              <div key={reading.id} className="flex items-start gap-3 px-5 py-3">
+                <span className="text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 mt-0.5 bg-slate-100 text-slate-700">
+                  {reading.status.replace('_', ' ')}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs text-slate-700 truncate">{log.userName} — {log.details}</p>
-                  <p className="text-xs text-slate-400">{timeAgo(log.createdAt)}</p>
+                  <p className="text-xs text-slate-700 truncate">{reading.meterLabel || reading.meterSerial} — {reading.readingValue.toLocaleString()} kWh</p>
+                  <p className="text-xs text-slate-400">{new Date(reading.createdAt).toLocaleString()}</p>
                 </div>
               </div>
             ))}
@@ -144,7 +184,7 @@ export default function AdminDashboard() {
           <h3 className="font-semibold text-slate-900 mb-4">Quick Actions</h3>
           <div className="space-y-2">
             {[
-              { label: 'Review Flagged Readings', badge: stats.pendingReviews, path: '/admin/readings', color: 'bg-amber-600 hover:bg-amber-700 text-white', icon: AlertTriangle },
+              { label: 'Review Flagged Readings', badge: pendingReviews, path: '/admin/readings', color: 'bg-amber-600 hover:bg-amber-700 text-white', icon: AlertTriangle },
               { label: 'Manage Users', badge: null, path: '/admin/users', color: 'bg-blue-600 hover:bg-blue-700 text-white', icon: Users },
               { label: 'Update Tariff Slabs', badge: null, path: '/admin/tariffs', color: 'bg-slate-100 hover:bg-slate-200 text-slate-700', icon: DollarSign },
               { label: 'System Reports', badge: null, path: '/admin/reports', color: 'bg-slate-100 hover:bg-slate-200 text-slate-700', icon: BarChart3 },

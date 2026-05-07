@@ -3,6 +3,7 @@ import { User, Mail, Phone, MapPin, Calendar, Gauge, Camera, Edit3, Save, X, Loa
 import { useApp } from '../../context/AppContext';
 import { toast } from 'sonner';
 import { PageHeader } from '../../components/common/PageHeader';
+import { apiFetch } from '../../lib/apiClient';
 
 export default function Profile() {
   const { currentUser, meters, readings, updateUserProfile } = useApp();
@@ -25,11 +26,15 @@ export default function Profile() {
 
   const handleSave = async () => {
     setLoading(true);
-    await new Promise(r => setTimeout(r, 700));
-    updateUserProfile(form);
-    setLoading(false);
-    setEditing(false);
-    toast.success('Profile updated successfully!');
+    try {
+      await updateUserProfile(form);
+      setEditing(false);
+      toast.success('Profile updated successfully!');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to update profile.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handlePassChange = async (e: React.FormEvent) => {
@@ -37,11 +42,19 @@ export default function Profile() {
     if (passForm.new !== passForm.confirm) { toast.error('New passwords do not match'); return; }
     if (passForm.new.length < 8) { toast.error('Password must be at least 8 characters'); return; }
     setLoading(true);
-    await new Promise(r => setTimeout(r, 700));
-    setLoading(false);
-    setChangingPass(false);
-    setPassForm({ current: '', new: '', confirm: '' });
-    toast.success('Password changed successfully!');
+    try {
+      await apiFetch('/api/auth/change-password', {
+        method: 'POST',
+        body: JSON.stringify({ currentPassword: passForm.current, newPassword: passForm.new }),
+      });
+      setChangingPass(false);
+      setPassForm({ current: '', new: '', confirm: '' });
+      toast.success('Password changed successfully!');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to change password.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

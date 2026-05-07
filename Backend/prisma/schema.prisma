@@ -6,3 +6,256 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+enum UserRole {
+  ADMIN
+  CONSUMER
+}
+
+enum MeterStatus {
+  PENDING
+  ACTIVE
+  INACTIVE
+  FAULTY
+  REJECTED
+}
+
+enum MeterType {
+  ANALOG
+  DIGITAL
+}
+
+enum ReadingSource {
+  AI_EXTRACTED
+  MANUAL
+  AI_CORRECTED
+}
+
+enum ReadingStatus {
+  ACCEPTED
+  FLAGGED
+  REJECTED
+  PENDING_REVIEW
+}
+
+enum BillStatus {
+  ESTIMATED
+  CONFIRMED
+  PAID
+  OVERDUE
+}
+
+enum NotificationType {
+  READING_REMINDER
+  ABNORMAL_USAGE
+  BILLING_GENERATED
+  LOW_CONFIDENCE_READING
+  SYSTEM_ALERT
+  READING_SUBMITTED
+  ACCOUNT_APPROVED
+  ACCOUNT_REJECTED
+  METER_APPROVED
+  METER_REJECTED
+}
+
+model User {
+  id              String   @id @default(cuid())
+  email           String   @unique
+  passwordHash    String
+  firstName       String
+  lastName        String
+  phone           String?
+  address         String?
+  city            String?
+  role              UserRole @default(CONSUMER)
+  avatarUrl         String?
+  isActive          Boolean  @default(false)
+  isPendingApproval Boolean  @default(true)
+  isEmailVerified   Boolean  @default(false)
+  rejectionReason   String?
+  lastLoginAt     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  meters        Meter[]
+  readings      Reading[]
+  bills         Bill[]
+  notifications Notification[]
+  settings      UserSettings?
+  refreshTokens RefreshToken[]
+  auditLogs     AuditLog[]
+
+  reviewedReadings Reading[] @relation("ReadingReviewedBy")
+}
+
+model UserSettings {
+  userId              String  @id
+  user                User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emailNotifications  Boolean @default(true)
+  readingReminders    Boolean @default(true)
+  abnormalAlerts      Boolean @default(true)
+  billingAlerts       Boolean @default(true)
+  reminderDay         Int     @default(1)
+  language            String  @default("en")
+  currency            String  @default("PKR")
+  confidenceThreshold Int     @default(75)
+  timezone            String  @default("Asia/Karachi")
+  twoFactor           Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Meter {
+  id               String      @id @default(cuid())
+  userId           String
+  user             User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  meterSerial      String      @unique
+  meterLabel       String?
+  meterType        MeterType
+  installationDate DateTime?
+  location         String?
+  status           MeterStatus @default(PENDING)
+  maxDigits        Int         @default(5)
+  initialReading   Decimal?    @db.Decimal(12, 2)
+  lastReadingValue Decimal?    @db.Decimal(12, 2)
+  lastReadingDate  DateTime?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  readings Reading[]
+  bills    Bill[]
+
+  @@index([userId])
+  @@index([status])
+}
+
+model Reading {
+  id              String        @id @default(cuid())
+  meterId         String
+  meter           Meter         @relation(fields: [meterId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  readingValue    Decimal       @db.Decimal(12, 2)
+  previousReading Decimal?      @db.Decimal(12, 2)
+  consumption     Decimal?      @db.Decimal(12, 2)
+  readingDate     DateTime
+  imageUrl        String?
+  imagePublicId   String?
+  source          ReadingSource
+  confidenceScore Float?
+  status          ReadingStatus @default(ACCEPTED)
+  isAnomalous     Boolean       @default(false)
+  anomalyReason   String?
+  reviewNotes     String?
+
+  reviewedById String?
+  reviewedBy   User?     @relation("ReadingReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, readingDate(sort: Desc)])
+  @@index([meterId, readingDate(sort: Desc)])
+  @@index([status])
+  @@index([source])
+}
+
+model Tariff {
+  id            String   @id @default(cuid())
+  name          String
+  description   String?
+  minUnits      Int
+  maxUnits      Int?
+  ratePerUnit   Decimal  @db.Decimal(10, 4)
+  fixedCharges  Decimal  @db.Decimal(10, 2)
+  fuelAdjustment Decimal @db.Decimal(10, 4)
+  taxPercentage Decimal  @db.Decimal(6, 2)
+  isActive      Boolean  @default(true)
+  effectiveFrom DateTime
+  effectiveTo   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([effectiveFrom])
+}
+
+model Bill {
+  id             String     @id @default(cuid())
+  userId         String
+  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  meterId        String
+  meter          Meter      @relation(fields: [meterId], references: [id], onDelete: Cascade)
+  billingMonth   String
+  previousReading Decimal    @db.Decimal(12, 2)
+  currentReading  Decimal    @db.Decimal(12, 2)
+  unitsConsumed   Int
+  energyCharges   Decimal    @db.Decimal(12, 2)
+  fixedCharges    Decimal    @db.Decimal(12, 2)
+  fuelAdjustment  Decimal    @db.Decimal(12, 2)
+  taxAmount       Decimal    @db.Decimal(12, 2)
+  totalAmount     Decimal    @db.Decimal(12, 2)
+  status          BillStatus @default(ESTIMATED)
+  dueDate         DateTime?
+  paidAt          DateTime?
+  tariffSnapshot  Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([meterId, billingMonth])
+  @@index([userId, billingMonth(sort: Desc)])
+  @@index([status])
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  title     String
+  message   String
+  link      String?
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@index([userId, isRead])
+  @@index([type])
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  userAgent String?
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String
+  entity    String
+  entityId  String?
+  details   String?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt(sort: Desc)])
+  @@index([action])
+  @@index([entity])
+  @@index([userId])
+}

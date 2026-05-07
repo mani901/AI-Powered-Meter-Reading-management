@@ -9,7 +9,73 @@
 * 🟢 You can import this file directly.
 */
 
+export const UserRole = {
+  ADMIN: 'ADMIN',
+  CONSUMER: 'CONSUMER'
+} as const
+
+export type UserRole = (typeof UserRole)[keyof typeof UserRole]
 
 
-// This file is empty because there are no enums in the schema.
-export {}
+export const MeterStatus = {
+  PENDING: 'PENDING',
+  ACTIVE: 'ACTIVE',
+  INACTIVE: 'INACTIVE',
+  FAULTY: 'FAULTY',
+  REJECTED: 'REJECTED'
+} as const
+
+export type MeterStatus = (typeof MeterStatus)[keyof typeof MeterStatus]
+
+
+export const MeterType = {
+  ANALOG: 'ANALOG',
+  DIGITAL: 'DIGITAL'
+} as const
+
+export type MeterType = (typeof MeterType)[keyof typeof MeterType]
+
+
+export const ReadingSource = {
+  AI_EXTRACTED: 'AI_EXTRACTED',
+  MANUAL: 'MANUAL',
+  AI_CORRECTED: 'AI_CORRECTED'
+} as const
+
+export type ReadingSource = (typeof ReadingSource)[keyof typeof ReadingSource]
+
+
+export const ReadingStatus = {
+  ACCEPTED: 'ACCEPTED',
+  FLAGGED: 'FLAGGED',
+  REJECTED: 'REJECTED',
+  PENDING_REVIEW: 'PENDING_REVIEW'
+} as const
+
+export type ReadingStatus = (typeof ReadingStatus)[keyof typeof ReadingStatus]
+
+
+export const BillStatus = {
+  ESTIMATED: 'ESTIMATED',
+  CONFIRMED: 'CONFIRMED',
+  PAID: 'PAID',
+  OVERDUE: 'OVERDUE'
+} as const
+
+export type BillStatus = (typeof BillStatus)[keyof typeof BillStatus]
+
+
+export const NotificationType = {
+  READING_REMINDER: 'READING_REMINDER',
+  ABNORMAL_USAGE: 'ABNORMAL_USAGE',
+  BILLING_GENERATED: 'BILLING_GENERATED',
+  LOW_CONFIDENCE_READING: 'LOW_CONFIDENCE_READING',
+  SYSTEM_ALERT: 'SYSTEM_ALERT',
+  READING_SUBMITTED: 'READING_SUBMITTED',
+  ACCOUNT_APPROVED: 'ACCOUNT_APPROVED',
+  ACCOUNT_REJECTED: 'ACCOUNT_REJECTED',
+  METER_APPROVED: 'METER_APPROVED',
+  METER_REJECTED: 'METER_REJECTED'
+} as const
+
+export type NotificationType = (typeof NotificationType)[keyof typeof NotificationType]

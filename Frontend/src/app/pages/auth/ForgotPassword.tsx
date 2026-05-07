@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router';
 import { Zap, ArrowLeft, Mail, Loader2, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { forgotPasswordRequest } from '../../lib/apiClient';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -12,10 +13,15 @@ export default function ForgotPassword() {
     e.preventDefault();
     if (!email) return;
     setLoading(true);
-    await new Promise(r => setTimeout(r, 1000));
-    setLoading(false);
-    setSent(true);
-    toast.success('Reset email sent!');
+    try {
+      await forgotPasswordRequest(email);
+      setSent(true);
+      toast.success('Reset email sent!');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to send reset email.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

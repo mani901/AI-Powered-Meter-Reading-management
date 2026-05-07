@@ -17,4 +17,48 @@ import * as Prisma from './internal/prismaNamespaceBrowser'
 export { Prisma }
 export * as $Enums from './enums'
 export * from './enums';
-
+/**
+ * Model User
+ * 
+ */
+export type User = Prisma.UserModel
+/**
+ * Model UserSettings
+ * 
+ */
+export type UserSettings = Prisma.UserSettingsModel
+/**
+ * Model Meter
+ * 
+ */
+export type Meter = Prisma.MeterModel
+/**
+ * Model Reading
+ * 
+ */
+export type Reading = Prisma.ReadingModel
+/**
+ * Model Tariff
+ * 
+ */
+export type Tariff = Prisma.TariffModel
+/**
+ * Model Bill
+ * 
+ */
+export type Bill = Prisma.BillModel
+/**
+ * Model Notification
+ * 
+ */
+export type Notification = Prisma.NotificationModel
+/**
+ * Model RefreshToken
+ * 
+ */
+export type RefreshToken = Prisma.RefreshTokenModel
+/**
+ * Model AuditLog
+ * 
+ */
+export type AuditLog = Prisma.AuditLogModel

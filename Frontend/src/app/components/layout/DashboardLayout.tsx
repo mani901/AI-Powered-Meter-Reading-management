@@ -4,7 +4,11 @@ import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 
 export function DashboardLayout() {
-  const { currentUser, isSidebarCollapsed } = useApp();
+  const { currentUser, isSidebarCollapsed, loadingAuth } = useApp();
+
+  if (loadingAuth) {
+    return <div className="min-h-screen bg-slate-50" />;
+  }
 
   if (!currentUser) {
     return <Navigate to="/login" replace />;

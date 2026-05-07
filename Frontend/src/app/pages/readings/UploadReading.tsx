@@ -7,6 +7,7 @@ import {
 import { useApp } from '../../context/AppContext';
 import { toast } from 'sonner';
 import { ConfidenceBadge } from '../../components/common/ConfidenceBadge';
+import { apiFetch } from '../../lib/apiClient';
 
 type Step = 'select' | 'upload' | 'analyzing' | 'result' | 'confirmed';
 
@@ -24,7 +25,7 @@ const STEPS = ['Select Meter', 'Upload Image', 'AI Analysis', 'Confirm'];
 
 export default function UploadReading() {
   const navigate = useNavigate();
-  const { currentUser, meters, readings, addReading, addNotification } = useApp();
+  const { currentUser, meters, addReading } = useApp();
   const [step, setStep] = useState<Step>('select');
   const [selectedMeterId, setSelectedMeterId] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -59,72 +60,74 @@ export default function UploadReading() {
     if (file) handleFile(file);
   }, []);
 
-  const simulateAI = async () => {
+  const runAiExtraction = async () => {
+    if (!imageFile || !selectedMeterId) return;
     setStep('analyzing');
-    await new Promise(r => setTimeout(r, 2200));
+    try {
+      const formData = new FormData();
+      formData.append('meterId', selectedMeterId);
+      formData.append('image', imageFile);
+      formData.append('readingDate', readingDate);
 
-    const meter = meters.find(m => m.id === selectedMeterId);
-    const lastReading = meter?.lastReadingValue ?? 40000;
-    const consumption = Math.floor(Math.random() * 300) + 150;
-    const newReading = lastReading + consumption;
-    const confidence = 0.55 + Math.random() * 0.45;
-    const isAnomalous = consumption > 450;
+      const res = await apiFetch<{
+        preview: {
+          readingValue: number;
+          confidenceScore: number;
+          source: 'AI_EXTRACTED';
+          imageUrl?: string;
+          meterType?: string;
+          previousReading?: number;
+          consumption?: number;
+          isAnomalous: boolean;
+          anomalyReason?: string;
+        };
+      }>('/api/readings/upload', { method: 'POST', body: formData });
 
-    setAiResult({
-      readingValue: newReading,
-      confidenceScore: parseFloat(confidence.toFixed(2)),
-      meterType: meter?.meterType ?? 'analog',
-      previousReading: lastReading,
-      consumption,
-      isAnomalous,
-      anomalyReason: isAnomalous ? `Consumption (${consumption} kWh) is unusually high vs average (280 kWh)` : undefined,
-    });
-    setStep('result');
+      setImagePreview(res.preview.imageUrl ?? imagePreview);
+      setAiResult({
+        readingValue: res.preview.readingValue,
+        confidenceScore: res.preview.confidenceScore,
+        meterType: res.preview.meterType ?? selectedMeter?.meterType ?? 'analog',
+        previousReading: res.preview.previousReading,
+        consumption: res.preview.consumption,
+        isAnomalous: res.preview.isAnomalous,
+        anomalyReason: res.preview.anomalyReason,
+      });
+      setStep('result');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'AI extraction failed.');
+      setStep('upload');
+    }
   };
 
-  const handleAccept = (correctedVal?: number) => {
+  const handleAccept = async (correctedVal?: number) => {
     if (!aiResult || !currentUser) return;
     const finalValue = correctedVal ?? aiResult.readingValue;
     const source = correctedVal ? 'AI_CORRECTED' : 'AI_EXTRACTED';
     const status = aiResult.confidenceScore >= 0.75 ? 'ACCEPTED' : 'FLAGGED';
 
-    addReading({
-      meterId: selectedMeterId,
-      meterSerial: selectedMeter?.meterSerial,
-      meterLabel: selectedMeter?.meterLabel,
-      userId: currentUser.id,
-      readingValue: finalValue,
-      previousReading: aiResult.previousReading,
-      consumption: aiResult.consumption,
-      readingDate,
-      imageUrl: imagePreview ?? undefined,
-      source,
-      confidenceScore: aiResult.confidenceScore,
-      status,
-      isAnomalous: aiResult.isAnomalous,
-      anomalyReason: aiResult.anomalyReason,
-    });
-
-    addNotification({
-      userId: currentUser.id,
-      type: 'READING_SUBMITTED',
-      title: 'Reading Submitted Successfully',
-      message: `Your meter reading of ${finalValue.toLocaleString()} for ${selectedMeter?.meterLabel ?? selectedMeter?.meterSerial} has been recorded.`,
-      isRead: false,
-    });
-
-    if (aiResult.confidenceScore < 0.75) {
-      addNotification({
+    try {
+      await addReading({
+        meterId: selectedMeterId,
+        meterSerial: selectedMeter?.meterSerial,
+        meterLabel: selectedMeter?.meterLabel,
         userId: currentUser.id,
-        type: 'LOW_CONFIDENCE_READING',
-        title: 'Low Confidence Reading',
-        message: `Reading from ${selectedMeter?.meterLabel} has ${Math.round(aiResult.confidenceScore * 100)}% confidence. An admin will review it.`,
-        isRead: false,
+        readingValue: finalValue,
+        previousReading: aiResult.previousReading,
+        consumption: aiResult.consumption,
+        readingDate,
+        imageUrl: imagePreview ?? undefined,
+        source,
+        confidenceScore: aiResult.confidenceScore,
+        status,
+        isAnomalous: aiResult.isAnomalous,
+        anomalyReason: aiResult.anomalyReason,
       });
+      toast.success(status === 'ACCEPTED' ? 'Reading accepted successfully!' : 'Reading submitted for review (low confidence).');
+      setStep('confirmed');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to submit reading.');
     }
-
-    toast.success(status === 'ACCEPTED' ? 'Reading accepted successfully!' : 'Reading submitted for review (low confidence).');
-    setStep('confirmed');
   };
 
   const stepIndex = { select: 0, upload: 1, analyzing: 2, result: 2, confirmed: 3 }[step];
@@ -258,7 +261,7 @@ export default function UploadReading() {
             <button onClick={() => setStep('select')} className="flex-1 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 py-3 rounded-xl font-medium transition-colors flex items-center justify-center gap-2">
               <ArrowLeft size={16} /> Back
             </button>
-            <button disabled={!imagePreview} onClick={simulateAI}
+            <button disabled={!imagePreview} onClick={runAiExtraction}
               className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white py-3 rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
             >
               <Camera size={16} /> Extract Reading

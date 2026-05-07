@@ -1,0 +1,8 @@
+-- Add new enum values for approval workflow
+-- These must run outside a transaction in PostgreSQL
+ALTER TYPE "MeterStatus" ADD VALUE IF NOT EXISTS 'PENDING';
+ALTER TYPE "MeterStatus" ADD VALUE IF NOT EXISTS 'REJECTED';
+ALTER TYPE "NotificationType" ADD VALUE IF NOT EXISTS 'ACCOUNT_APPROVED';
+ALTER TYPE "NotificationType" ADD VALUE IF NOT EXISTS 'ACCOUNT_REJECTED';
+ALTER TYPE "NotificationType" ADD VALUE IF NOT EXISTS 'METER_APPROVED';
+ALTER TYPE "NotificationType" ADD VALUE IF NOT EXISTS 'METER_REJECTED';

@@ -38,7 +38,7 @@ export default function AdminTariffs() {
     });
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.name || !form.minUnits || !form.ratePerUnit) {
       toast.error('Please fill required fields'); return;
     }
@@ -50,10 +50,10 @@ export default function AdminTariffs() {
       effectiveFrom: form.effectiveFrom, isActive: form.isActive,
     };
     if (editingId) {
-      updateTariff(editingId, data);
+      await updateTariff(editingId, data);
       toast.success('Tariff updated');
     } else {
-      addTariff(data);
+      await addTariff(data);
       toast.success('Tariff added');
     }
     setEditingId(null);
@@ -61,9 +61,9 @@ export default function AdminTariffs() {
     setForm(defaultForm);
   };
 
-  const handleDelete = (id: string, name: string) => {
+  const handleDelete = async (id: string, name: string) => {
     if (confirm(`Delete tariff "${name}"?`)) {
-      deleteTariff(id);
+      await deleteTariff(id);
       toast.success('Tariff deleted');
     }
   };
@@ -104,7 +104,7 @@ export default function AdminTariffs() {
         </div>
       </div>
       <div className="flex gap-3 mt-4">
-        <button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2 transition-colors">
+        <button onClick={() => void handleSave()} className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2 transition-colors">
           <Save size={15} /> {adding ? 'Add Tariff' : 'Save Changes'}
         </button>
         <button onClick={() => { setEditingId(null); setAdding(false); setForm(defaultForm); }}
@@ -166,7 +166,7 @@ export default function AdminTariffs() {
                       <button onClick={() => startEdit(t)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
                         <Pencil size={14} />
                       </button>
-                      <button onClick={() => handleDelete(t.id, t.name)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                      <button onClick={() => void handleDelete(t.id, t.name)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors">
                         <Trash2 size={14} />
                       </button>
                     </div>

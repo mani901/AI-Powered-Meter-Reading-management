@@ -1,12 +1,14 @@
 import { useState } from 'react';
-import { Camera, Gauge, MoreVertical, Trash2, CheckCircle2, AlertTriangle, XCircle } from 'lucide-react';
+import { Camera, Gauge, MoreVertical, Trash2, CheckCircle2, AlertTriangle, XCircle, Clock } from 'lucide-react';
 import type { Meter } from '../../types';
 import { METER_STATUS_BADGE } from '../../constants/statusConfig';
 
 const statusConfig = {
+  PENDING: { label: 'Pending Approval', icon: Clock, color: METER_STATUS_BADGE.PENDING },
   ACTIVE: { label: 'Active', icon: CheckCircle2, color: METER_STATUS_BADGE.ACTIVE },
   INACTIVE: { label: 'Inactive', icon: XCircle, color: METER_STATUS_BADGE.INACTIVE },
   FAULTY: { label: 'Faulty', icon: AlertTriangle, color: METER_STATUS_BADGE.FAULTY },
+  REJECTED: { label: 'Rejected', icon: XCircle, color: METER_STATUS_BADGE.REJECTED },
 };
 
 export function MeterCard({
@@ -93,12 +95,22 @@ export function MeterCard({
         </div>
 
         <div className="flex gap-2 mt-5">
-          <button
-            onClick={onUpload}
-            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 transition-colors"
-          >
-            <Camera size={13} /> Upload Reading
-          </button>
+          {meter.status === 'PENDING' || meter.status === 'REJECTED' ? (
+            <div className={`flex-1 py-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 border ${
+              meter.status === 'PENDING'
+                ? 'bg-amber-50 text-amber-600 border-amber-200'
+                : 'bg-red-50 text-red-600 border-red-200'
+            }`}>
+              {meter.status === 'PENDING' ? <><Clock size={13} /> Awaiting Approval</> : <><XCircle size={13} /> Registration Rejected</>}
+            </div>
+          ) : (
+            <button
+              onClick={onUpload}
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 transition-colors"
+            >
+              <Camera size={13} /> Upload Reading
+            </button>
+          )}
           <button
             onClick={onView}
             className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 transition-colors"

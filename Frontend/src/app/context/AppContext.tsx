@@ -1,8 +1,6 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
-import type { User, Meter, Reading, Notification, Bill, Tariff } from '../types';
-import {
-  MOCK_USERS, MOCK_METERS, MOCK_READINGS, MOCK_NOTIFICATIONS, MOCK_BILLS, MOCK_TARIFFS,
-} from '../data/mockData';
+import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
+import type { User, Meter, Reading, Notification, Bill, Tariff, UserRole } from '../types';
+import { apiFetch, loginRequest, logoutRequest, refreshAccessToken } from '../lib/apiClient';
 
 interface AppContextType {
   currentUser: User | null;
@@ -12,147 +10,296 @@ interface AppContextType {
   notifications: Notification[];
   bills: Bill[];
   tariffs: Tariff[];
+  pendingUsersCount: number;
+  pendingMetersCount: number;
   unreadCount: number;
   isDarkMode: boolean;
   isSidebarCollapsed: boolean;
-  login: (email: string, password: string) => { success: boolean; message: string };
-  logout: () => void;
-  addMeter: (meter: Omit<Meter, 'id' | 'createdAt'>) => Meter;
-  updateMeter: (id: string, updates: Partial<Meter>) => void;
-  deleteMeter: (id: string) => void;
-  addReading: (reading: Omit<Reading, 'id' | 'createdAt'>) => Reading;
-  markNotificationRead: (id: string) => void;
-  markAllNotificationsRead: () => void;
-  deleteNotification: (id: string) => void;
-  addNotification: (n: Omit<Notification, 'id' | 'createdAt'>) => void;
-  updateTariff: (id: string, updates: Partial<Tariff>) => void;
-  addTariff: (tariff: Omit<Tariff, 'id'>) => void;
-  deleteTariff: (id: string) => void;
+  loadingAuth: boolean;
+  login: (email: string, password: string) => Promise<{ success: boolean; message: string }>;
+  logout: () => Promise<void>;
+  addMeter: (meter: Omit<Meter, 'id' | 'createdAt'>) => Promise<Meter>;
+  updateMeter: (id: string, updates: Partial<Meter>) => Promise<void>;
+  deleteMeter: (id: string) => Promise<void>;
+  addReading: (reading: Omit<Reading, 'id' | 'createdAt'>) => Promise<Reading>;
+  markNotificationRead: (id: string) => Promise<void>;
+  markAllNotificationsRead: () => Promise<void>;
+  deleteNotification: (id: string) => Promise<void>;
+  addNotification: (n: Omit<Notification, 'id' | 'createdAt'>) => Promise<void>;
+  updateTariff: (id: string, updates: Partial<Tariff>) => Promise<void>;
+  addTariff: (tariff: Omit<Tariff, 'id'>) => Promise<void>;
+  deleteTariff: (id: string) => Promise<void>;
   toggleDarkMode: () => void;
   toggleSidebar: () => void;
-  updateUserProfile: (updates: Partial<User>) => void;
-  updateUserStatus: (userId: string, isActive: boolean) => void;
-  updateUserRole: (userId: string, role: 'ADMIN' | 'CONSUMER') => void;
+  updateUserProfile: (updates: Partial<User>) => Promise<void>;
+  updateUserStatus: (userId: string, isActive: boolean) => Promise<void>;
+  updateUserRole: (userId: string, role: 'ADMIN' | 'CONSUMER') => Promise<void>;
+  approveUser: (userId: string) => Promise<void>;
+  rejectUser: (userId: string, reason?: string) => Promise<void>;
+  approveMeter: (meterId: string) => Promise<void>;
+  rejectMeter: (meterId: string, reason?: string) => Promise<void>;
+  refreshData: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    try {
-      const stored = localStorage.getItem('sm_current_user');
-      return stored ? JSON.parse(stored) : null;
-    } catch { return null; }
-  });
-  const [users, setUsers] = useState<User[]>(MOCK_USERS);
-  const [meters, setMeters] = useState<Meter[]>(MOCK_METERS);
-  const [readings, setReadings] = useState<Reading[]>(MOCK_READINGS);
-  const [notifications, setNotifications] = useState<Notification[]>(MOCK_NOTIFICATIONS);
-  const [bills] = useState<Bill[]>(MOCK_BILLS);
-  const [tariffs, setTariffs] = useState<Tariff[]>(MOCK_TARIFFS);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [users, setUsers] = useState<User[]>([]);
+  const [meters, setMeters] = useState<Meter[]>([]);
+  const [readings, setReadings] = useState<Reading[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [bills, setBills] = useState<Bill[]>([]);
+  const [tariffs, setTariffs] = useState<Tariff[]>([]);
+  const [pendingUsersCount, setPendingUsersCount] = useState(0);
+  const [pendingMetersCount, setPendingMetersCount] = useState(0);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [loadingAuth, setLoadingAuth] = useState(true);
 
   const unreadCount = notifications.filter(n => !n.isRead && n.userId === currentUser?.id).length;
 
-  const login = useCallback((email: string, password: string) => {
-    const user = users.find(u => u.email === email && u.password === password);
-    if (!user) return { success: false, message: 'Invalid email or password.' };
-    if (!user.isActive) return { success: false, message: 'Account is deactivated. Contact admin.' };
-    const updated = { ...user, lastLoginAt: new Date().toISOString() };
-    setCurrentUser(updated);
-    localStorage.setItem('sm_current_user', JSON.stringify(updated));
-    return { success: true, message: 'Login successful' };
-  }, [users]);
+  const refreshData = useCallback(async () => {
+    if (!currentUser) return;
+    const [metersRes, readingsRes, notificationsRes, billsRes, tariffsRes] = await Promise.all([
+      apiFetch<{ data: Meter[] }>('/api/meters?limit=200'),
+      apiFetch<{ data: Reading[] }>('/api/readings?limit=500'),
+      apiFetch<{ data: Notification[] }>('/api/notifications?limit=200'),
+      apiFetch<{ data: Bill[] }>('/api/bills?limit=200'),
+      apiFetch<{ tariffs: Tariff[] }>(currentUser.role === 'ADMIN' ? '/api/tariffs/all' : '/api/tariffs'),
+    ]);
+    setMeters(metersRes.data);
+    setReadings(readingsRes.data);
+    setNotifications(notificationsRes.data);
+    setBills(billsRes.data);
+    setTariffs(tariffsRes.tariffs);
 
-  const logout = useCallback(() => {
+    if (currentUser.role === 'ADMIN') {
+      const [usersRes, pendingUsersRes, pendingMetersRes] = await Promise.all([
+        apiFetch<{ data: User[] }>('/api/admin/users?limit=500'),
+        apiFetch<{ total: number }>('/api/admin/users/pending?limit=1'),
+        apiFetch<{ total: number }>('/api/admin/meters/pending?limit=1'),
+      ]);
+      setUsers(usersRes.data);
+      setPendingUsersCount(pendingUsersRes.total ?? 0);
+      setPendingMetersCount(pendingMetersRes.total ?? 0);
+    } else {
+      setUsers([currentUser]);
+    }
+  }, [currentUser]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const token = await refreshAccessToken();
+        if (!token) {
+          setCurrentUser(null);
+          return;
+        }
+        const me = await apiFetch<{ user: User }>('/api/users/me');
+        setCurrentUser(me.user);
+      } catch {
+        setCurrentUser(null);
+      } finally {
+        setLoadingAuth(false);
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (!currentUser) {
+      setMeters([]);
+      setReadings([]);
+      setNotifications([]);
+      setBills([]);
+      setTariffs([]);
+      setUsers([]);
+      return;
+    }
+    void refreshData();
+  }, [currentUser, refreshData]);
+
+  const login = useCallback(async (email: string, password: string) => {
+    try {
+      const res = await loginRequest(email, password);
+      setCurrentUser(res.user as User);
+      await refreshData();
+      return { success: true, message: 'Login successful' };
+    } catch (error) {
+      return { success: false, message: error instanceof Error ? error.message : 'Login failed' };
+    }
+  }, [refreshData]);
+
+  const logout = useCallback(async () => {
+    await logoutRequest();
     setCurrentUser(null);
-    localStorage.removeItem('sm_current_user');
   }, []);
 
-  const addMeter = useCallback((meterData: Omit<Meter, 'id' | 'createdAt'>) => {
-    const newMeter: Meter = { ...meterData, id: `m${Date.now()}`, createdAt: new Date().toISOString() };
-    setMeters(prev => [...prev, newMeter]);
-    return newMeter;
+  const addMeter = useCallback(async (meterData: Omit<Meter, 'id' | 'createdAt'>) => {
+    const res = await apiFetch<{ meter: Meter }>('/api/meters', {
+      method: 'POST',
+      body: JSON.stringify({
+        meterSerial: meterData.meterSerial,
+        meterLabel: meterData.meterLabel,
+        meterType: meterData.meterType,
+        installationDate: meterData.installationDate,
+        location: meterData.location,
+        status: meterData.status,
+        maxDigits: meterData.maxDigits,
+        initialReading: meterData.initialReading,
+      }),
+    });
+    setMeters(prev => [res.meter, ...prev]);
+    return res.meter;
   }, []);
 
-  const updateMeter = useCallback((id: string, updates: Partial<Meter>) => {
-    setMeters(prev => prev.map(m => m.id === id ? { ...m, ...updates } : m));
+  const updateMeter = useCallback(async (id: string, updates: Partial<Meter>) => {
+    const res = await apiFetch<{ meter: Meter }>(`/api/meters/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updates),
+    });
+    setMeters(prev => prev.map(m => m.id === id ? res.meter : m));
   }, []);
 
-  const deleteMeter = useCallback((id: string) => {
+  const deleteMeter = useCallback(async (id: string) => {
+    await apiFetch(`/api/meters/${id}`, { method: 'DELETE' });
     setMeters(prev => prev.filter(m => m.id !== id));
   }, []);
 
-  const addReading = useCallback((readingData: Omit<Reading, 'id' | 'createdAt'>) => {
-    const newReading: Reading = { ...readingData, id: `r${Date.now()}`, createdAt: new Date().toISOString() };
-    setReadings(prev => [newReading, ...prev]);
-    // Update meter's last reading
-    setMeters(prev => prev.map(m =>
-      m.id === readingData.meterId
-        ? { ...m, lastReadingValue: readingData.readingValue, lastReadingDate: readingData.readingDate }
-        : m
-    ));
-    return newReading;
+  const addReading = useCallback(async (readingData: Omit<Reading, 'id' | 'createdAt'>) => {
+    const endpoint = readingData.source === 'MANUAL' ? '/api/readings/manual' : '/api/readings';
+    const payload = readingData.source === 'MANUAL'
+      ? {
+          meterId: readingData.meterId,
+          readingValue: readingData.readingValue,
+          readingDate: readingData.readingDate,
+        }
+      : {
+          meterId: readingData.meterId,
+          readingValue: readingData.readingValue,
+          readingDate: readingData.readingDate,
+          imageUrl: readingData.imageUrl,
+          source: readingData.source,
+          confidenceScore: readingData.confidenceScore,
+        };
+
+    const res = await apiFetch<{ reading: Reading }>(endpoint, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    setReadings(prev => [res.reading, ...prev]);
+    await refreshData();
+    return res.reading;
   }, []);
 
-  const markNotificationRead = useCallback((id: string) => {
+  const markNotificationRead = useCallback(async (id: string) => {
+    await apiFetch(`/api/notifications/${id}/read`, { method: 'PATCH' });
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
   }, []);
 
-  const markAllNotificationsRead = useCallback(() => {
+  const markAllNotificationsRead = useCallback(async () => {
+    await apiFetch('/api/notifications/read-all', { method: 'POST' });
     setNotifications(prev => prev.map(n => n.userId === currentUser?.id ? { ...n, isRead: true } : n));
   }, [currentUser]);
 
-  const deleteNotification = useCallback((id: string) => {
+  const deleteNotification = useCallback(async (id: string) => {
+    await apiFetch(`/api/notifications/${id}`, { method: 'DELETE' });
     setNotifications(prev => prev.filter(n => n.id !== id));
   }, []);
 
-  const addNotification = useCallback((n: Omit<Notification, 'id' | 'createdAt'>) => {
-    const newN: Notification = { ...n, id: `n${Date.now()}`, createdAt: new Date().toISOString() };
-    setNotifications(prev => [newN, ...prev]);
+  const addNotification = useCallback(async (_n: Omit<Notification, 'id' | 'createdAt'>) => {}, []);
+
+  const updateTariff = useCallback(async (id: string, updates: Partial<Tariff>) => {
+    const res = await apiFetch<{ tariff: Tariff }>(`/api/tariffs/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updates),
+    });
+    setTariffs(prev => prev.map(t => t.id === id ? res.tariff : t));
   }, []);
 
-  const updateTariff = useCallback((id: string, updates: Partial<Tariff>) => {
-    setTariffs(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
+  const addTariff = useCallback(async (tariffData: Omit<Tariff, 'id'>) => {
+    const res = await apiFetch<{ tariff: Tariff }>('/api/tariffs', {
+      method: 'POST',
+      body: JSON.stringify(tariffData),
+    });
+    setTariffs(prev => [...prev, res.tariff]);
   }, []);
 
-  const addTariff = useCallback((tariffData: Omit<Tariff, 'id'>) => {
-    const newTariff: Tariff = { ...tariffData, id: `t${Date.now()}` };
-    setTariffs(prev => [...prev, newTariff]);
-  }, []);
-
-  const deleteTariff = useCallback((id: string) => {
+  const deleteTariff = useCallback(async (id: string) => {
+    await apiFetch(`/api/tariffs/${id}`, { method: 'DELETE' });
     setTariffs(prev => prev.filter(t => t.id !== id));
   }, []);
 
   const toggleDarkMode = useCallback(() => setIsDarkMode(prev => !prev), []);
   const toggleSidebar = useCallback(() => setIsSidebarCollapsed(prev => !prev), []);
 
-  const updateUserProfile = useCallback((updates: Partial<User>) => {
+  const updateUserProfile = useCallback(async (updates: Partial<User>) => {
     if (!currentUser) return;
-    const updated = { ...currentUser, ...updates };
-    setCurrentUser(updated);
-    localStorage.setItem('sm_current_user', JSON.stringify(updated));
-    setUsers(prev => prev.map(u => u.id === updated.id ? updated : u));
+    const res = await apiFetch<{ user: User }>('/api/users/me', {
+      method: 'PATCH',
+      body: JSON.stringify(updates),
+    });
+    setCurrentUser(res.user);
+    setUsers(prev => prev.map(u => u.id === res.user.id ? res.user : u));
   }, [currentUser]);
 
-  const updateUserStatus = useCallback((userId: string, isActive: boolean) => {
+  const updateUserStatus = useCallback(async (userId: string, isActive: boolean) => {
+    await apiFetch(`/api/admin/users/${userId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ isActive }),
+    });
     setUsers(prev => prev.map(u => u.id === userId ? { ...u, isActive } : u));
   }, []);
 
-  const updateUserRole = useCallback((userId: string, role: 'ADMIN' | 'CONSUMER') => {
+  const updateUserRole = useCallback(async (userId: string, role: UserRole) => {
+    await apiFetch(`/api/admin/users/${userId}/role`, {
+      method: 'PATCH',
+      body: JSON.stringify({ role }),
+    });
     setUsers(prev => prev.map(u => u.id === userId ? { ...u, role } : u));
+  }, []);
+
+  const approveUser = useCallback(async (userId: string) => {
+    await apiFetch(`/api/admin/users/${userId}/approve`, { method: 'POST' });
+    setUsers(prev => prev.map(u => u.id === userId ? { ...u, isActive: true, isPendingApproval: false } : u));
+    setPendingUsersCount(prev => Math.max(0, prev - 1));
+  }, []);
+
+  const rejectUser = useCallback(async (userId: string, reason?: string) => {
+    await apiFetch(`/api/admin/users/${userId}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+    setUsers(prev => prev.map(u => u.id === userId ? { ...u, isActive: false, isPendingApproval: false, rejectionReason: reason } : u));
+    setPendingUsersCount(prev => Math.max(0, prev - 1));
+  }, []);
+
+  const approveMeter = useCallback(async (meterId: string) => {
+    await apiFetch(`/api/admin/meters/${meterId}/approve`, { method: 'POST' });
+    setMeters(prev => prev.map(m => m.id === meterId ? { ...m, status: 'ACTIVE' as const } : m));
+    setPendingMetersCount(prev => Math.max(0, prev - 1));
+  }, []);
+
+  const rejectMeter = useCallback(async (meterId: string, reason?: string) => {
+    await apiFetch(`/api/admin/meters/${meterId}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+    setMeters(prev => prev.map(m => m.id === meterId ? { ...m, status: 'REJECTED' as const } : m));
+    setPendingMetersCount(prev => Math.max(0, prev - 1));
   }, []);
 
   return (
     <AppContext.Provider value={{
       currentUser, users, meters, readings, notifications, bills, tariffs,
-      unreadCount, isDarkMode, isSidebarCollapsed,
+      pendingUsersCount, pendingMetersCount,
+      unreadCount, isDarkMode, isSidebarCollapsed, loadingAuth,
       login, logout, addMeter, updateMeter, deleteMeter, addReading,
       markNotificationRead, markAllNotificationsRead, deleteNotification, addNotification,
       updateTariff, addTariff, deleteTariff, toggleDarkMode, toggleSidebar,
       updateUserProfile, updateUserStatus, updateUserRole,
+      approveUser, rejectUser, approveMeter, rejectMeter,
+      refreshData,
     }}>
       {children}
     </AppContext.Provider>

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router';
-import { Zap, Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
+import { Zap, Eye, EyeOff, Loader2, AlertCircle, Clock } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { toast } from 'sonner';
 
@@ -20,8 +20,7 @@ export default function Login() {
       return;
     }
     setLoading(true);
-    await new Promise(r => setTimeout(r, 800)); // simulate network
-    const result = login(form.email, form.password);
+    const result = await login(form.email, form.password);
     setLoading(false);
     if (result.success) {
       toast.success('Welcome back!');
@@ -63,10 +62,20 @@ export default function Login() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
-              <div className="flex items-center gap-2 text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2.5 text-sm">
-                <AlertCircle size={16} className="flex-shrink-0" />
-                <span>{error}</span>
-              </div>
+              error.toLowerCase().includes('pending') ? (
+                <div className="flex items-start gap-2 text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-3 text-sm">
+                  <Clock size={16} className="flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium">Account Pending Approval</p>
+                    <p className="text-xs mt-0.5 text-amber-600">Your registration is being reviewed by an administrator. You will be notified once approved.</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2.5 text-sm">
+                  <AlertCircle size={16} className="flex-shrink-0" />
+                  <span>{error}</span>
+                </div>
+              )
             )}
 
             <div>

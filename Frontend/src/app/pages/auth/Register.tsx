@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router';
-import { Zap, Eye, EyeOff, Loader2, CheckCircle2, XCircle } from 'lucide-react';
+import { Link } from 'react-router';
+import { Zap, Eye, EyeOff, Loader2, CheckCircle2, XCircle, Clock } from 'lucide-react';
 import { toast } from 'sonner';
+import { registerRequest } from '../../lib/apiClient';
 
 interface FormData {
   firstName: string; lastName: string; email: string;
@@ -44,11 +45,11 @@ function PasswordStrength({ password }: { password: string }) {
 }
 
 export default function Register() {
-  const navigate = useNavigate();
   const [form, setForm] = useState<FormData>({ firstName: '', lastName: '', email: '', phone: '', city: '', password: '', confirmPassword: '' });
   const [showPass, setShowPass] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
   const [errors, setErrors] = useState<Partial<FormData & { agreed: string }>>({});
 
   const validate = () => {
@@ -67,10 +68,22 @@ export default function Register() {
     e.preventDefault();
     if (!validate()) return;
     setLoading(true);
-    await new Promise(r => setTimeout(r, 1000));
-    setLoading(false);
-    toast.success('Account created! Please check your email for verification.', { duration: 4000 });
-    navigate('/login');
+    try {
+      await registerRequest({
+        firstName: form.firstName,
+        lastName: form.lastName,
+        email: form.email,
+        password: form.password,
+        phone: form.phone || undefined,
+        city: form.city || undefined,
+      });
+      setSubmitted(true);
+      toast.success('Registration submitted! Awaiting admin approval.', { duration: 4000 });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to create account.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const set = (field: keyof FormData) => (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -90,6 +103,37 @@ export default function Register() {
       {errors[field] && <p className="text-red-500 text-xs mt-1">{errors[field]}</p>}
     </div>
   );
+
+  if (submitted) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 flex items-center justify-center p-4">
+        <div className="w-full max-w-md text-center">
+          <div className="bg-white rounded-2xl p-10 shadow-2xl">
+            <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-5">
+              <Clock size={32} className="text-amber-500" />
+            </div>
+            <h2 className="text-2xl font-bold text-slate-900 mb-2">Registration Submitted!</h2>
+            <p className="text-slate-500 mb-6 text-sm leading-relaxed">
+              Your account is <strong className="text-amber-600">pending admin approval</strong>.
+              You will receive a notification once an administrator reviews your application.
+              This typically takes 1–2 business days.
+            </p>
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-left mb-6">
+              <p className="text-sm text-amber-800 font-medium mb-2">What happens next?</p>
+              <ul className="text-xs text-amber-700 space-y-1.5">
+                <li className="flex items-start gap-2"><CheckCircle2 size={13} className="mt-0.5 flex-shrink-0 text-amber-500" /> Admin reviews your registration details</li>
+                <li className="flex items-start gap-2"><CheckCircle2 size={13} className="mt-0.5 flex-shrink-0 text-amber-500" /> You receive an email notification on approval</li>
+                <li className="flex items-start gap-2"><CheckCircle2 size={13} className="mt-0.5 flex-shrink-0 text-amber-500" /> Log in and start managing your meters</li>
+              </ul>
+            </div>
+            <Link to="/login" className="block w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-medium transition-colors text-sm">
+              Go to Login
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 flex items-center justify-center p-4">

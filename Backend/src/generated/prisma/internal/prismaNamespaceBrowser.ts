@@ -51,7 +51,15 @@ export const AnyNull = runtime.AnyNull
 
 
 export const ModelName = {
-
+  User: 'User',
+  UserSettings: 'UserSettings',
+  Meter: 'Meter',
+  Reading: 'Reading',
+  Tariff: 'Tariff',
+  Bill: 'Bill',
+  Notification: 'Notification',
+  RefreshToken: 'RefreshToken',
+  AuditLog: 'AuditLog'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -68,4 +76,220 @@ export const TransactionIsolationLevel = {
 } as const
 
 export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof typeof TransactionIsolationLevel]
+
+
+export const UserScalarFieldEnum = {
+  id: 'id',
+  email: 'email',
+  passwordHash: 'passwordHash',
+  firstName: 'firstName',
+  lastName: 'lastName',
+  phone: 'phone',
+  address: 'address',
+  city: 'city',
+  role: 'role',
+  avatarUrl: 'avatarUrl',
+  isActive: 'isActive',
+  isPendingApproval: 'isPendingApproval',
+  isEmailVerified: 'isEmailVerified',
+  rejectionReason: 'rejectionReason',
+  lastLoginAt: 'lastLoginAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
+
+
+export const UserSettingsScalarFieldEnum = {
+  userId: 'userId',
+  emailNotifications: 'emailNotifications',
+  readingReminders: 'readingReminders',
+  abnormalAlerts: 'abnormalAlerts',
+  billingAlerts: 'billingAlerts',
+  reminderDay: 'reminderDay',
+  language: 'language',
+  currency: 'currency',
+  confidenceThreshold: 'confidenceThreshold',
+  timezone: 'timezone',
+  twoFactor: 'twoFactor',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type UserSettingsScalarFieldEnum = (typeof UserSettingsScalarFieldEnum)[keyof typeof UserSettingsScalarFieldEnum]
+
+
+export const MeterScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  meterSerial: 'meterSerial',
+  meterLabel: 'meterLabel',
+  meterType: 'meterType',
+  installationDate: 'installationDate',
+  location: 'location',
+  status: 'status',
+  maxDigits: 'maxDigits',
+  initialReading: 'initialReading',
+  lastReadingValue: 'lastReadingValue',
+  lastReadingDate: 'lastReadingDate',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MeterScalarFieldEnum = (typeof MeterScalarFieldEnum)[keyof typeof MeterScalarFieldEnum]
+
+
+export const ReadingScalarFieldEnum = {
+  id: 'id',
+  meterId: 'meterId',
+  userId: 'userId',
+  readingValue: 'readingValue',
+  previousReading: 'previousReading',
+  consumption: 'consumption',
+  readingDate: 'readingDate',
+  imageUrl: 'imageUrl',
+  imagePublicId: 'imagePublicId',
+  source: 'source',
+  confidenceScore: 'confidenceScore',
+  status: 'status',
+  isAnomalous: 'isAnomalous',
+  anomalyReason: 'anomalyReason',
+  reviewNotes: 'reviewNotes',
+  reviewedById: 'reviewedById',
+  reviewedAt: 'reviewedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ReadingScalarFieldEnum = (typeof ReadingScalarFieldEnum)[keyof typeof ReadingScalarFieldEnum]
+
+
+export const TariffScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  description: 'description',
+  minUnits: 'minUnits',
+  maxUnits: 'maxUnits',
+  ratePerUnit: 'ratePerUnit',
+  fixedCharges: 'fixedCharges',
+  fuelAdjustment: 'fuelAdjustment',
+  taxPercentage: 'taxPercentage',
+  isActive: 'isActive',
+  effectiveFrom: 'effectiveFrom',
+  effectiveTo: 'effectiveTo',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type TariffScalarFieldEnum = (typeof TariffScalarFieldEnum)[keyof typeof TariffScalarFieldEnum]
+
+
+export const BillScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  meterId: 'meterId',
+  billingMonth: 'billingMonth',
+  previousReading: 'previousReading',
+  currentReading: 'currentReading',
+  unitsConsumed: 'unitsConsumed',
+  energyCharges: 'energyCharges',
+  fixedCharges: 'fixedCharges',
+  fuelAdjustment: 'fuelAdjustment',
+  taxAmount: 'taxAmount',
+  totalAmount: 'totalAmount',
+  status: 'status',
+  dueDate: 'dueDate',
+  paidAt: 'paidAt',
+  tariffSnapshot: 'tariffSnapshot',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type BillScalarFieldEnum = (typeof BillScalarFieldEnum)[keyof typeof BillScalarFieldEnum]
+
+
+export const NotificationScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  type: 'type',
+  title: 'title',
+  message: 'message',
+  link: 'link',
+  isRead: 'isRead',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type NotificationScalarFieldEnum = (typeof NotificationScalarFieldEnum)[keyof typeof NotificationScalarFieldEnum]
+
+
+export const RefreshTokenScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  tokenHash: 'tokenHash',
+  expiresAt: 'expiresAt',
+  revokedAt: 'revokedAt',
+  userAgent: 'userAgent',
+  ip: 'ip',
+  createdAt: 'createdAt'
+} as const
+
+export type RefreshTokenScalarFieldEnum = (typeof RefreshTokenScalarFieldEnum)[keyof typeof RefreshTokenScalarFieldEnum]
+
+
+export const AuditLogScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  action: 'action',
+  entity: 'entity',
+  entityId: 'entityId',
+  details: 'details',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+} as const
+
+export type AuditLogScalarFieldEnum = (typeof AuditLogScalarFieldEnum)[keyof typeof AuditLogScalarFieldEnum]
+
+
+export const SortOrder = {
+  asc: 'asc',
+  desc: 'desc'
+} as const
+
+export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
+
+
+export const NullableJsonNullValueInput = {
+  DbNull: 'DbNull',
+  JsonNull: 'JsonNull'
+} as const
+
+export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
+
+
+export const QueryMode = {
+  default: 'default',
+  insensitive: 'insensitive'
+} as const
+
+export type QueryMode = (typeof QueryMode)[keyof typeof QueryMode]
+
+
+export const NullsOrder = {
+  first: 'first',
+  last: 'last'
+} as const
+
+export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
+
+
+export const JsonNullValueFilter = {
+  DbNull: 'DbNull',
+  JsonNull: 'JsonNull',
+  AnyNull: 'AnyNull'
+} as const
+
+export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
 

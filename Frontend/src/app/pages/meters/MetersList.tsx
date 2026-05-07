@@ -26,10 +26,14 @@ export default function MetersList() {
       (m.location ?? '').toLowerCase().includes(search.toLowerCase())
     );
 
-  const handleDelete = (id: string, label?: string) => {
+  const handleDelete = async (id: string, label?: string) => {
     if (confirm(`Delete meter "${label ?? id}"? This action cannot be undone.`)) {
-      deleteMeter(id);
-      toast.success('Meter deleted successfully');
+      try {
+        await deleteMeter(id);
+        toast.success('Meter deleted successfully');
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'Failed to delete meter.');
+      }
     }
   };
 
@@ -50,10 +54,15 @@ export default function MetersList() {
       />
 
       {/* Summary row */}
-      <div className="grid grid-cols-3 gap-4">
-        {(['ALL', 'ACTIVE', 'INACTIVE', 'FAULTY'] as const).slice(1).map(status => {
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        {(['PENDING', 'ACTIVE', 'INACTIVE', 'FAULTY'] as const).map(status => {
           const count = allUserMeters.filter(m => m.status === status).length;
-          const colors = { ACTIVE: 'border-l-green-500', INACTIVE: 'border-l-slate-400', FAULTY: 'border-l-red-500' };
+          const colors = {
+            PENDING: 'border-l-amber-500',
+            ACTIVE: 'border-l-green-500',
+            INACTIVE: 'border-l-slate-400',
+            FAULTY: 'border-l-red-500',
+          };
           return (
             <div key={status} className={`bg-white border border-slate-200 border-l-4 ${colors[status]} rounded-xl p-4`}>
               <p className="text-slate-500 text-xs">{status.charAt(0) + status.slice(1).toLowerCase()}</p>
@@ -71,8 +80,8 @@ export default function MetersList() {
           placeholder="Search by serial, label, or location..."
           className="flex-1"
         />
-        <div className="flex gap-2">
-          {['ALL', 'ACTIVE', 'INACTIVE', 'FAULTY'].map(s => (
+        <div className="flex flex-wrap gap-2">
+          {['ALL', 'PENDING', 'ACTIVE', 'INACTIVE', 'FAULTY', 'REJECTED'].map(s => (
             <button
               key={s}
               onClick={() => setStatusFilter(s)}
