@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router';
 import {
   Users, Gauge, Camera, AlertTriangle, TrendingUp,
-  DollarSign, CheckCircle2, Clock, BarChart3,
+  DollarSign, CheckCircle2, Clock, BarChart3, HardHat,
 } from 'lucide-react';
 import {
   BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis,
@@ -16,6 +16,8 @@ const COLORS = ['#2563eb', '#10b981', '#f59e0b'];
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const { users, meters, readings, bills } = useApp();
+  const staffCount = users.filter(u => u.role === 'FIELD_STAFF').length;
+  const consumerCount = users.filter(u => u.role === 'CONSUMER').length;
   const totalUsers = users.length;
   const activeUsers = users.filter(u => u.isActive).length;
   const totalMeters = meters.length;
@@ -80,17 +82,17 @@ export default function AdminDashboard() {
 
       {/* Stats grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={Users} label="Total Users" value={totalUsers} sub={`${activeUsers} active`} color="bg-blue-50 text-blue-600" />
+        <StatCard icon={Users} label="Consumers" value={consumerCount} sub={`${activeUsers} active total`} color="bg-blue-50 text-blue-600" />
+        <StatCard icon={HardHat} label="Field Staff" value={staffCount} sub="Data collectors" color="bg-emerald-50 text-emerald-600" />
         <StatCard icon={Gauge} label="Total Meters" value={totalMeters} sub={`${activeMeters} active`} color="bg-green-50 text-green-600" />
-        <StatCard icon={Camera} label="Readings This Month" value={readingsThisMonth} sub={`Total readings ever: ${readings.length}`} color="bg-purple-50 text-purple-600" />
-        <StatCard icon={AlertTriangle} label="Flagged Readings" value={flaggedReadings} sub={`${pendingReviews} pending review`} color="bg-amber-50 text-amber-600" />
+        <StatCard icon={Camera} label="Readings This Month" value={readingsThisMonth} sub={`${readings.length} total ever`} color="bg-purple-50 text-purple-600" />
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard icon={AlertTriangle} label="Pending Reviews" value={pendingReviews} sub="Awaiting approval" color="bg-amber-50 text-amber-600" />
         <StatCard icon={CheckCircle2} label="Avg. Confidence" value={`${(avgConfidenceScore * 100).toFixed(0)}%`} sub="AI extraction accuracy" color="bg-teal-50 text-teal-600" />
         <StatCard icon={DollarSign} label="Est. Revenue" value={`PKR ${(revenueThisMonth / 1000).toFixed(0)}K`} sub="This month total bills" color="bg-emerald-50 text-emerald-600" />
-        <StatCard icon={TrendingUp} label="Monthly Growth" value="+13.5%" sub="vs last month" color="bg-indigo-50 text-indigo-600" />
-        <StatCard icon={Clock} label="Pending Reviews" value={pendingReviews} sub="Flagged readings" color="bg-red-50 text-red-600" />
+        <StatCard icon={Clock} label="Flagged Readings" value={flaggedReadings} sub="Review needed" color="bg-red-50 text-red-600" />
       </div>
 
       {/* Charts row */}
@@ -184,10 +186,10 @@ export default function AdminDashboard() {
           <h3 className="font-semibold text-slate-900 mb-4">Quick Actions</h3>
           <div className="space-y-2">
             {[
-              { label: 'Review Flagged Readings', badge: pendingReviews, path: '/admin/readings', color: 'bg-amber-600 hover:bg-amber-700 text-white', icon: AlertTriangle },
-              { label: 'Manage Users', badge: null, path: '/admin/users', color: 'bg-blue-600 hover:bg-blue-700 text-white', icon: Users },
+              { label: 'Review Readings', badge: pendingReviews, path: '/admin/readings', color: 'bg-amber-600 hover:bg-amber-700 text-white', icon: AlertTriangle },
+              { label: 'Manage Meters', badge: null, path: '/admin/meters', color: 'bg-blue-600 hover:bg-blue-700 text-white', icon: Gauge },
+              { label: 'Manage Field Staff', badge: null, path: '/admin/staff', color: 'bg-emerald-600 hover:bg-emerald-700 text-white', icon: HardHat },
               { label: 'Update Tariff Slabs', badge: null, path: '/admin/tariffs', color: 'bg-slate-100 hover:bg-slate-200 text-slate-700', icon: DollarSign },
-              { label: 'System Reports', badge: null, path: '/admin/reports', color: 'bg-slate-100 hover:bg-slate-200 text-slate-700', icon: BarChart3 },
             ].map(a => (
               <button key={a.path} onClick={() => navigate(a.path)}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${a.color}`}

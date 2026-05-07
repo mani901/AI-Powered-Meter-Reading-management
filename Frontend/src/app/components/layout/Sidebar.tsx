@@ -1,9 +1,10 @@
 import { NavLink, useNavigate } from 'react-router';
 import {
   LayoutDashboard, Gauge, Camera, Clock, BarChart3, Receipt,
-  Bell, Download, User, Settings, ShieldCheck, LogOut,
+  Bell, Download, Settings, ShieldCheck, LogOut,
   ChevronLeft, ChevronRight, Zap, Users, AlertTriangle,
-  DollarSign, FileText, ClipboardCheck,
+  DollarSign, FileText, ClipboardCheck, HardHat, Wrench,
+  MessageSquareWarning, CheckSquare,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
@@ -11,49 +12,70 @@ interface NavItem {
   label: string;
   path: string;
   icon: React.ElementType;
-  badge?: number;
-  adminOnly?: boolean;
+  end?: boolean;
 }
 
-const navItems: NavItem[] = [
+const consumerNavItems: NavItem[] = [
   { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
   { label: 'My Meters', path: '/meters', icon: Gauge },
-  { label: 'Upload Reading', path: '/readings/upload', icon: Camera },
-  { label: 'Reading History', path: '/readings', icon: Clock },
-  { label: 'Analytics', path: '/analytics', icon: BarChart3 },
   { label: 'Billing', path: '/billing', icon: Receipt },
+  { label: 'Analytics', path: '/analytics', icon: BarChart3 },
+  { label: 'Disputes', path: '/disputes', icon: MessageSquareWarning },
   { label: 'Notifications', path: '/notifications', icon: Bell },
   { label: 'Export Data', path: '/export', icon: Download },
 ];
 
-const adminItems: NavItem[] = [
-  { label: 'Admin Dashboard', path: '/admin', icon: ShieldCheck, adminOnly: true },
-  { label: 'Approvals', path: '/admin/approvals', icon: ClipboardCheck, adminOnly: true },
-  { label: 'Users', path: '/admin/users', icon: Users, adminOnly: true },
-  { label: 'Flagged Readings', path: '/admin/readings', icon: AlertTriangle, adminOnly: true },
-  { label: 'Tariffs', path: '/admin/tariffs', icon: DollarSign, adminOnly: true },
-  { label: 'Reports', path: '/admin/reports', icon: FileText, adminOnly: true },
+const staffNavItems: NavItem[] = [
+  { label: 'Dashboard', path: '/staff', icon: LayoutDashboard, end: true },
+  { label: 'My Meters', path: '/staff/meters', icon: Gauge },
+  { label: 'Submit Reading', path: '/staff/submit', icon: Camera },
+  { label: 'My Submissions', path: '/staff/history', icon: Clock },
+  { label: 'Notifications', path: '/notifications', icon: Bell },
 ];
 
+const adminNavItems: NavItem[] = [
+  { label: 'Overview', path: '/admin', icon: ShieldCheck, end: true },
+  { label: 'Approvals', path: '/admin/approvals', icon: ClipboardCheck },
+  { label: 'Meters', path: '/admin/meters', icon: Gauge },
+  { label: 'Users', path: '/admin/users', icon: Users },
+  { label: 'Field Staff', path: '/admin/staff', icon: HardHat },
+  { label: 'Reading Verification', path: '/admin/readings', icon: CheckSquare },
+  { label: 'Billing', path: '/billing', icon: Receipt },
+  { label: 'Tariffs', path: '/admin/tariffs', icon: DollarSign },
+  { label: 'Disputes', path: '/admin/disputes', icon: MessageSquareWarning },
+  { label: 'Reports', path: '/admin/reports', icon: FileText },
+];
+
+const roleColors: Record<string, string> = {
+  ADMIN: 'bg-purple-600',
+  FIELD_STAFF: 'bg-emerald-600',
+  CONSUMER: 'bg-blue-600',
+};
+
+const roleLabels: Record<string, string> = {
+  ADMIN: 'Admin',
+  FIELD_STAFF: 'Field Staff',
+  CONSUMER: 'Consumer',
+};
+
 export function Sidebar() {
-  const { currentUser, unreadCount, pendingUsersCount, pendingMetersCount, isSidebarCollapsed, toggleSidebar, logout } = useApp();
-  const totalPendingApprovals = pendingUsersCount + pendingMetersCount;
+  const { currentUser, unreadCount, pendingUsersCount, isSidebarCollapsed, toggleSidebar, logout } = useApp();
   const navigate = useNavigate();
-  const isAdmin = currentUser?.role === 'ADMIN';
 
   const handleLogout = async () => {
     await logout();
     navigate('/login');
   };
 
+  const role = currentUser?.role ?? 'CONSUMER';
+  const navItems = role === 'ADMIN' ? adminNavItems : role === 'FIELD_STAFF' ? staffNavItems : consumerNavItems;
+  const activeColor = role === 'ADMIN' ? 'bg-purple-700' : role === 'FIELD_STAFF' ? 'bg-emerald-700' : 'bg-blue-600';
+  const accentColor = roleColors[role] ?? 'bg-blue-600';
+
   return (
     <>
-      {/* Mobile overlay */}
       {!isSidebarCollapsed && (
-        <div
-          className="fixed inset-0 bg-black/50 z-20 lg:hidden"
-          onClick={toggleSidebar}
-        />
+        <div className="fixed inset-0 bg-black/50 z-20 lg:hidden" onClick={toggleSidebar} />
       )}
 
       <aside
@@ -66,13 +88,13 @@ export function Sidebar() {
       >
         {/* Logo */}
         <div className={`flex items-center gap-3 px-4 py-5 border-b border-slate-800 ${isSidebarCollapsed ? 'lg:justify-center lg:px-2' : ''}`}>
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
-            <Zap size={18} className="text-white" />
+          <div className={`w-8 h-8 ${accentColor} rounded-lg flex items-center justify-center flex-shrink-0`}>
+            {role === 'FIELD_STAFF' ? <Wrench size={16} className="text-white" /> : <Zap size={18} className="text-white" />}
           </div>
           {!isSidebarCollapsed && (
             <div>
               <p className="text-white font-semibold text-sm leading-none">SmartMeter</p>
-              <p className="text-slate-400 text-xs">AI Reading System</p>
+              <p className="text-slate-400 text-xs">{roleLabels[role] ?? 'User'} Portal</p>
             </div>
           )}
         </div>
@@ -94,11 +116,12 @@ export function Sidebar() {
             <NavLink
               key={item.path}
               to={item.path}
+              end={item.end}
               className={({ isActive }) =>
                 `group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-150
                 ${isSidebarCollapsed ? 'lg:justify-center lg:px-2' : ''}
                 ${isActive
-                  ? 'bg-blue-600 text-white'
+                  ? `${activeColor} text-white`
                   : 'text-slate-400 hover:bg-slate-800 hover:text-white'
                 }`
               }
@@ -112,48 +135,13 @@ export function Sidebar() {
                   {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               )}
-              {isSidebarCollapsed && item.path === '/notifications' && unreadCount > 0 && (
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full hidden lg:block" />
+              {!isSidebarCollapsed && item.path === '/admin/approvals' && pendingUsersCount > 0 && (
+                <span className="bg-amber-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium">
+                  {pendingUsersCount > 9 ? '9+' : pendingUsersCount}
+                </span>
               )}
             </NavLink>
           ))}
-
-          {/* Admin Section */}
-          {isAdmin && (
-            <>
-              <div className={`pt-4 pb-2 ${isSidebarCollapsed ? 'lg:hidden' : ''}`}>
-                <p className="text-slate-600 text-xs uppercase tracking-wider px-3 font-medium">Administration</p>
-              </div>
-              {isSidebarCollapsed && <div className="border-t border-slate-800 my-2 hidden lg:block" />}
-              {adminItems.map(item => (
-                <NavLink
-                  key={item.path}
-                  to={item.path}
-                  end={item.path === '/admin'}
-                  className={({ isActive }) =>
-                    `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-150
-                    ${isSidebarCollapsed ? 'lg:justify-center lg:px-2' : ''}
-                    ${isActive
-                      ? 'bg-purple-700 text-white'
-                      : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-                    }`
-                  }
-                >
-                  <item.icon size={18} className="flex-shrink-0" />
-                  {!isSidebarCollapsed && (
-                    <>
-                      <span className="flex-1">{item.label}</span>
-                      {item.path === '/admin/approvals' && totalPendingApprovals > 0 && (
-                        <span className="bg-amber-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium">
-                          {totalPendingApprovals > 9 ? '9+' : totalPendingApprovals}
-                        </span>
-                      )}
-                    </>
-                  )}
-                </NavLink>
-              ))}
-            </>
-          )}
         </nav>
 
         {/* User section */}
@@ -166,7 +154,7 @@ export function Sidebar() {
               ${isActive ? 'bg-slate-800 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`
             }
           >
-            <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
+            <div className={`w-6 h-6 ${accentColor} rounded-full flex items-center justify-center flex-shrink-0`}>
               <span className="text-white text-xs font-medium">
                 {currentUser?.firstName?.[0]}{currentUser?.lastName?.[0]}
               </span>
@@ -174,7 +162,7 @@ export function Sidebar() {
             {!isSidebarCollapsed && (
               <div className="flex-1 min-w-0">
                 <p className="text-white text-xs font-medium truncate">{currentUser?.firstName} {currentUser?.lastName}</p>
-                <p className="text-slate-500 text-xs truncate">{currentUser?.role}</p>
+                <p className="text-slate-500 text-xs truncate">{roleLabels[role]}</p>
               </div>
             )}
           </NavLink>

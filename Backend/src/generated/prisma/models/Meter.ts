@@ -299,6 +299,8 @@ export type MeterWhereInput = {
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   readings?: Prisma.ReadingListRelationFilter
   bills?: Prisma.BillListRelationFilter
+  staffAssignments?: Prisma.StaffMeterAssignmentListRelationFilter
+  disputes?: Prisma.DisputeListRelationFilter
 }
 
 export type MeterOrderByWithRelationInput = {
@@ -319,6 +321,8 @@ export type MeterOrderByWithRelationInput = {
   user?: Prisma.UserOrderByWithRelationInput
   readings?: Prisma.ReadingOrderByRelationAggregateInput
   bills?: Prisma.BillOrderByRelationAggregateInput
+  staffAssignments?: Prisma.StaffMeterAssignmentOrderByRelationAggregateInput
+  disputes?: Prisma.DisputeOrderByRelationAggregateInput
 }
 
 export type MeterWhereUniqueInput = Prisma.AtLeast<{
@@ -342,6 +346,8 @@ export type MeterWhereUniqueInput = Prisma.AtLeast<{
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   readings?: Prisma.ReadingListRelationFilter
   bills?: Prisma.BillListRelationFilter
+  staffAssignments?: Prisma.StaffMeterAssignmentListRelationFilter
+  disputes?: Prisma.DisputeListRelationFilter
 }, "id" | "meterSerial">
 
 export type MeterOrderByWithAggregationInput = {
@@ -403,6 +409,8 @@ export type MeterCreateInput = {
   user: Prisma.UserCreateNestedOneWithoutMetersInput
   readings?: Prisma.ReadingCreateNestedManyWithoutMeterInput
   bills?: Prisma.BillCreateNestedManyWithoutMeterInput
+  staffAssignments?: Prisma.StaffMeterAssignmentCreateNestedManyWithoutMeterInput
+  disputes?: Prisma.DisputeCreateNestedManyWithoutMeterInput
 }
 
 export type MeterUncheckedCreateInput = {
@@ -422,6 +430,8 @@ export type MeterUncheckedCreateInput = {
   updatedAt?: Date | string
   readings?: Prisma.ReadingUncheckedCreateNestedManyWithoutMeterInput
   bills?: Prisma.BillUncheckedCreateNestedManyWithoutMeterInput
+  staffAssignments?: Prisma.StaffMeterAssignmentUncheckedCreateNestedManyWithoutMeterInput
+  disputes?: Prisma.DisputeUncheckedCreateNestedManyWithoutMeterInput
 }
 
 export type MeterUpdateInput = {
@@ -441,6 +451,8 @@ export type MeterUpdateInput = {
   user?: Prisma.UserUpdateOneRequiredWithoutMetersNestedInput
   readings?: Prisma.ReadingUpdateManyWithoutMeterNestedInput
   bills?: Prisma.BillUpdateManyWithoutMeterNestedInput
+  staffAssignments?: Prisma.StaffMeterAssignmentUpdateManyWithoutMeterNestedInput
+  disputes?: Prisma.DisputeUpdateManyWithoutMeterNestedInput
 }
 
 export type MeterUncheckedUpdateInput = {
@@ -460,6 +472,8 @@ export type MeterUncheckedUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   readings?: Prisma.ReadingUncheckedUpdateManyWithoutMeterNestedInput
   bills?: Prisma.BillUncheckedUpdateManyWithoutMeterNestedInput
+  staffAssignments?: Prisma.StaffMeterAssignmentUncheckedUpdateManyWithoutMeterNestedInput
+  disputes?: Prisma.DisputeUncheckedUpdateManyWithoutMeterNestedInput
 }
 
 export type MeterCreateManyInput = {
@@ -676,6 +690,34 @@ export type MeterUpdateOneRequiredWithoutBillsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.MeterUpdateToOneWithWhereWithoutBillsInput, Prisma.MeterUpdateWithoutBillsInput>, Prisma.MeterUncheckedUpdateWithoutBillsInput>
 }
 
+export type MeterCreateNestedOneWithoutStaffAssignmentsInput = {
+  create?: Prisma.XOR<Prisma.MeterCreateWithoutStaffAssignmentsInput, Prisma.MeterUncheckedCreateWithoutStaffAssignmentsInput>
+  connectOrCreate?: Prisma.MeterCreateOrConnectWithoutStaffAssignmentsInput
+  connect?: Prisma.MeterWhereUniqueInput
+}
+
+export type MeterUpdateOneRequiredWithoutStaffAssignmentsNestedInput = {
+  create?: Prisma.XOR<Prisma.MeterCreateWithoutStaffAssignmentsInput, Prisma.MeterUncheckedCreateWithoutStaffAssignmentsInput>
+  connectOrCreate?: Prisma.MeterCreateOrConnectWithoutStaffAssignmentsInput
+  upsert?: Prisma.MeterUpsertWithoutStaffAssignmentsInput
+  connect?: Prisma.MeterWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.MeterUpdateToOneWithWhereWithoutStaffAssignmentsInput, Prisma.MeterUpdateWithoutStaffAssignmentsInput>, Prisma.MeterUncheckedUpdateWithoutStaffAssignmentsInput>
+}
+
+export type MeterCreateNestedOneWithoutDisputesInput = {
+  create?: Prisma.XOR<Prisma.MeterCreateWithoutDisputesInput, Prisma.MeterUncheckedCreateWithoutDisputesInput>
+  connectOrCreate?: Prisma.MeterCreateOrConnectWithoutDisputesInput
+  connect?: Prisma.MeterWhereUniqueInput
+}
+
+export type MeterUpdateOneRequiredWithoutDisputesNestedInput = {
+  create?: Prisma.XOR<Prisma.MeterCreateWithoutDisputesInput, Prisma.MeterUncheckedCreateWithoutDisputesInput>
+  connectOrCreate?: Prisma.MeterCreateOrConnectWithoutDisputesInput
+  upsert?: Prisma.MeterUpsertWithoutDisputesInput
+  connect?: Prisma.MeterWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.MeterUpdateToOneWithWhereWithoutDisputesInput, Prisma.MeterUpdateWithoutDisputesInput>, Prisma.MeterUncheckedUpdateWithoutDisputesInput>
+}
+
 export type MeterCreateWithoutUserInput = {
   id?: string
   meterSerial: string
@@ -692,6 +734,8 @@ export type MeterCreateWithoutUserInput = {
   updatedAt?: Date | string
   readings?: Prisma.ReadingCreateNestedManyWithoutMeterInput
   bills?: Prisma.BillCreateNestedManyWithoutMeterInput
+  staffAssignments?: Prisma.StaffMeterAssignmentCreateNestedManyWithoutMeterInput
+  disputes?: Prisma.DisputeCreateNestedManyWithoutMeterInput
 }
 
 export type MeterUncheckedCreateWithoutUserInput = {
@@ -710,6 +754,8 @@ export type MeterUncheckedCreateWithoutUserInput = {
   updatedAt?: Date | string
   readings?: Prisma.ReadingUncheckedCreateNestedManyWithoutMeterInput
   bills?: Prisma.BillUncheckedCreateNestedManyWithoutMeterInput
+  staffAssignments?: Prisma.StaffMeterAssignmentUncheckedCreateNestedManyWithoutMeterInput
+  disputes?: Prisma.DisputeUncheckedCreateNestedManyWithoutMeterInput
 }
 
 export type MeterCreateOrConnectWithoutUserInput = {
@@ -774,6 +820,8 @@ export type MeterCreateWithoutReadingsInput = {
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutMetersInput
   bills?: Prisma.BillCreateNestedManyWithoutMeterInput
+  staffAssignments?: Prisma.StaffMeterAssignmentCreateNestedManyWithoutMeterInput
+  disputes?: Prisma.DisputeCreateNestedManyWithoutMeterInput
 }
 
 export type MeterUncheckedCreateWithoutReadingsInput = {
@@ -792,6 +840,8 @@ export type MeterUncheckedCreateWithoutReadingsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   bills?: Prisma.BillUncheckedCreateNestedManyWithoutMeterInput
+  staffAssignments?: Prisma.StaffMeterAssignmentUncheckedCreateNestedManyWithoutMeterInput
+  disputes?: Prisma.DisputeUncheckedCreateNestedManyWithoutMeterInput
 }
 
 export type MeterCreateOrConnectWithoutReadingsInput = {
@@ -826,6 +876,8 @@ export type MeterUpdateWithoutReadingsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutMetersNestedInput
   bills?: Prisma.BillUpdateManyWithoutMeterNestedInput
+  staffAssignments?: Prisma.StaffMeterAssignmentUpdateManyWithoutMeterNestedInput
+  disputes?: Prisma.DisputeUpdateManyWithoutMeterNestedInput
 }
 
 export type MeterUncheckedUpdateWithoutReadingsInput = {
@@ -844,6 +896,8 @@ export type MeterUncheckedUpdateWithoutReadingsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   bills?: Prisma.BillUncheckedUpdateManyWithoutMeterNestedInput
+  staffAssignments?: Prisma.StaffMeterAssignmentUncheckedUpdateManyWithoutMeterNestedInput
+  disputes?: Prisma.DisputeUncheckedUpdateManyWithoutMeterNestedInput
 }
 
 export type MeterCreateWithoutBillsInput = {
@@ -862,6 +916,8 @@ export type MeterCreateWithoutBillsInput = {
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutMetersInput
   readings?: Prisma.ReadingCreateNestedManyWithoutMeterInput
+  staffAssignments?: Prisma.StaffMeterAssignmentCreateNestedManyWithoutMeterInput
+  disputes?: Prisma.DisputeCreateNestedManyWithoutMeterInput
 }
 
 export type MeterUncheckedCreateWithoutBillsInput = {
@@ -880,6 +936,8 @@ export type MeterUncheckedCreateWithoutBillsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   readings?: Prisma.ReadingUncheckedCreateNestedManyWithoutMeterInput
+  staffAssignments?: Prisma.StaffMeterAssignmentUncheckedCreateNestedManyWithoutMeterInput
+  disputes?: Prisma.DisputeUncheckedCreateNestedManyWithoutMeterInput
 }
 
 export type MeterCreateOrConnectWithoutBillsInput = {
@@ -914,6 +972,8 @@ export type MeterUpdateWithoutBillsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutMetersNestedInput
   readings?: Prisma.ReadingUpdateManyWithoutMeterNestedInput
+  staffAssignments?: Prisma.StaffMeterAssignmentUpdateManyWithoutMeterNestedInput
+  disputes?: Prisma.DisputeUpdateManyWithoutMeterNestedInput
 }
 
 export type MeterUncheckedUpdateWithoutBillsInput = {
@@ -932,6 +992,200 @@ export type MeterUncheckedUpdateWithoutBillsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   readings?: Prisma.ReadingUncheckedUpdateManyWithoutMeterNestedInput
+  staffAssignments?: Prisma.StaffMeterAssignmentUncheckedUpdateManyWithoutMeterNestedInput
+  disputes?: Prisma.DisputeUncheckedUpdateManyWithoutMeterNestedInput
+}
+
+export type MeterCreateWithoutStaffAssignmentsInput = {
+  id?: string
+  meterSerial: string
+  meterLabel?: string | null
+  meterType: $Enums.MeterType
+  installationDate?: Date | string | null
+  location?: string | null
+  status?: $Enums.MeterStatus
+  maxDigits?: number
+  initialReading?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  lastReadingValue?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  lastReadingDate?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  user: Prisma.UserCreateNestedOneWithoutMetersInput
+  readings?: Prisma.ReadingCreateNestedManyWithoutMeterInput
+  bills?: Prisma.BillCreateNestedManyWithoutMeterInput
+  disputes?: Prisma.DisputeCreateNestedManyWithoutMeterInput
+}
+
+export type MeterUncheckedCreateWithoutStaffAssignmentsInput = {
+  id?: string
+  userId: string
+  meterSerial: string
+  meterLabel?: string | null
+  meterType: $Enums.MeterType
+  installationDate?: Date | string | null
+  location?: string | null
+  status?: $Enums.MeterStatus
+  maxDigits?: number
+  initialReading?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  lastReadingValue?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  lastReadingDate?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  readings?: Prisma.ReadingUncheckedCreateNestedManyWithoutMeterInput
+  bills?: Prisma.BillUncheckedCreateNestedManyWithoutMeterInput
+  disputes?: Prisma.DisputeUncheckedCreateNestedManyWithoutMeterInput
+}
+
+export type MeterCreateOrConnectWithoutStaffAssignmentsInput = {
+  where: Prisma.MeterWhereUniqueInput
+  create: Prisma.XOR<Prisma.MeterCreateWithoutStaffAssignmentsInput, Prisma.MeterUncheckedCreateWithoutStaffAssignmentsInput>
+}
+
+export type MeterUpsertWithoutStaffAssignmentsInput = {
+  update: Prisma.XOR<Prisma.MeterUpdateWithoutStaffAssignmentsInput, Prisma.MeterUncheckedUpdateWithoutStaffAssignmentsInput>
+  create: Prisma.XOR<Prisma.MeterCreateWithoutStaffAssignmentsInput, Prisma.MeterUncheckedCreateWithoutStaffAssignmentsInput>
+  where?: Prisma.MeterWhereInput
+}
+
+export type MeterUpdateToOneWithWhereWithoutStaffAssignmentsInput = {
+  where?: Prisma.MeterWhereInput
+  data: Prisma.XOR<Prisma.MeterUpdateWithoutStaffAssignmentsInput, Prisma.MeterUncheckedUpdateWithoutStaffAssignmentsInput>
+}
+
+export type MeterUpdateWithoutStaffAssignmentsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  meterSerial?: Prisma.StringFieldUpdateOperationsInput | string
+  meterLabel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  meterType?: Prisma.EnumMeterTypeFieldUpdateOperationsInput | $Enums.MeterType
+  installationDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  location?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumMeterStatusFieldUpdateOperationsInput | $Enums.MeterStatus
+  maxDigits?: Prisma.IntFieldUpdateOperationsInput | number
+  initialReading?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  lastReadingValue?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  lastReadingDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  user?: Prisma.UserUpdateOneRequiredWithoutMetersNestedInput
+  readings?: Prisma.ReadingUpdateManyWithoutMeterNestedInput
+  bills?: Prisma.BillUpdateManyWithoutMeterNestedInput
+  disputes?: Prisma.DisputeUpdateManyWithoutMeterNestedInput
+}
+
+export type MeterUncheckedUpdateWithoutStaffAssignmentsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  meterSerial?: Prisma.StringFieldUpdateOperationsInput | string
+  meterLabel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  meterType?: Prisma.EnumMeterTypeFieldUpdateOperationsInput | $Enums.MeterType
+  installationDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  location?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumMeterStatusFieldUpdateOperationsInput | $Enums.MeterStatus
+  maxDigits?: Prisma.IntFieldUpdateOperationsInput | number
+  initialReading?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  lastReadingValue?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  lastReadingDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  readings?: Prisma.ReadingUncheckedUpdateManyWithoutMeterNestedInput
+  bills?: Prisma.BillUncheckedUpdateManyWithoutMeterNestedInput
+  disputes?: Prisma.DisputeUncheckedUpdateManyWithoutMeterNestedInput
+}
+
+export type MeterCreateWithoutDisputesInput = {
+  id?: string
+  meterSerial: string
+  meterLabel?: string | null
+  meterType: $Enums.MeterType
+  installationDate?: Date | string | null
+  location?: string | null
+  status?: $Enums.MeterStatus
+  maxDigits?: number
+  initialReading?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  lastReadingValue?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  lastReadingDate?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  user: Prisma.UserCreateNestedOneWithoutMetersInput
+  readings?: Prisma.ReadingCreateNestedManyWithoutMeterInput
+  bills?: Prisma.BillCreateNestedManyWithoutMeterInput
+  staffAssignments?: Prisma.StaffMeterAssignmentCreateNestedManyWithoutMeterInput
+}
+
+export type MeterUncheckedCreateWithoutDisputesInput = {
+  id?: string
+  userId: string
+  meterSerial: string
+  meterLabel?: string | null
+  meterType: $Enums.MeterType
+  installationDate?: Date | string | null
+  location?: string | null
+  status?: $Enums.MeterStatus
+  maxDigits?: number
+  initialReading?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  lastReadingValue?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  lastReadingDate?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  readings?: Prisma.ReadingUncheckedCreateNestedManyWithoutMeterInput
+  bills?: Prisma.BillUncheckedCreateNestedManyWithoutMeterInput
+  staffAssignments?: Prisma.StaffMeterAssignmentUncheckedCreateNestedManyWithoutMeterInput
+}
+
+export type MeterCreateOrConnectWithoutDisputesInput = {
+  where: Prisma.MeterWhereUniqueInput
+  create: Prisma.XOR<Prisma.MeterCreateWithoutDisputesInput, Prisma.MeterUncheckedCreateWithoutDisputesInput>
+}
+
+export type MeterUpsertWithoutDisputesInput = {
+  update: Prisma.XOR<Prisma.MeterUpdateWithoutDisputesInput, Prisma.MeterUncheckedUpdateWithoutDisputesInput>
+  create: Prisma.XOR<Prisma.MeterCreateWithoutDisputesInput, Prisma.MeterUncheckedCreateWithoutDisputesInput>
+  where?: Prisma.MeterWhereInput
+}
+
+export type MeterUpdateToOneWithWhereWithoutDisputesInput = {
+  where?: Prisma.MeterWhereInput
+  data: Prisma.XOR<Prisma.MeterUpdateWithoutDisputesInput, Prisma.MeterUncheckedUpdateWithoutDisputesInput>
+}
+
+export type MeterUpdateWithoutDisputesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  meterSerial?: Prisma.StringFieldUpdateOperationsInput | string
+  meterLabel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  meterType?: Prisma.EnumMeterTypeFieldUpdateOperationsInput | $Enums.MeterType
+  installationDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  location?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumMeterStatusFieldUpdateOperationsInput | $Enums.MeterStatus
+  maxDigits?: Prisma.IntFieldUpdateOperationsInput | number
+  initialReading?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  lastReadingValue?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  lastReadingDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  user?: Prisma.UserUpdateOneRequiredWithoutMetersNestedInput
+  readings?: Prisma.ReadingUpdateManyWithoutMeterNestedInput
+  bills?: Prisma.BillUpdateManyWithoutMeterNestedInput
+  staffAssignments?: Prisma.StaffMeterAssignmentUpdateManyWithoutMeterNestedInput
+}
+
+export type MeterUncheckedUpdateWithoutDisputesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  meterSerial?: Prisma.StringFieldUpdateOperationsInput | string
+  meterLabel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  meterType?: Prisma.EnumMeterTypeFieldUpdateOperationsInput | $Enums.MeterType
+  installationDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  location?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumMeterStatusFieldUpdateOperationsInput | $Enums.MeterStatus
+  maxDigits?: Prisma.IntFieldUpdateOperationsInput | number
+  initialReading?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  lastReadingValue?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  lastReadingDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  readings?: Prisma.ReadingUncheckedUpdateManyWithoutMeterNestedInput
+  bills?: Prisma.BillUncheckedUpdateManyWithoutMeterNestedInput
+  staffAssignments?: Prisma.StaffMeterAssignmentUncheckedUpdateManyWithoutMeterNestedInput
 }
 
 export type MeterCreateManyUserInput = {
@@ -966,6 +1220,8 @@ export type MeterUpdateWithoutUserInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   readings?: Prisma.ReadingUpdateManyWithoutMeterNestedInput
   bills?: Prisma.BillUpdateManyWithoutMeterNestedInput
+  staffAssignments?: Prisma.StaffMeterAssignmentUpdateManyWithoutMeterNestedInput
+  disputes?: Prisma.DisputeUpdateManyWithoutMeterNestedInput
 }
 
 export type MeterUncheckedUpdateWithoutUserInput = {
@@ -984,6 +1240,8 @@ export type MeterUncheckedUpdateWithoutUserInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   readings?: Prisma.ReadingUncheckedUpdateManyWithoutMeterNestedInput
   bills?: Prisma.BillUncheckedUpdateManyWithoutMeterNestedInput
+  staffAssignments?: Prisma.StaffMeterAssignmentUncheckedUpdateManyWithoutMeterNestedInput
+  disputes?: Prisma.DisputeUncheckedUpdateManyWithoutMeterNestedInput
 }
 
 export type MeterUncheckedUpdateManyWithoutUserInput = {
@@ -1010,11 +1268,15 @@ export type MeterUncheckedUpdateManyWithoutUserInput = {
 export type MeterCountOutputType = {
   readings: number
   bills: number
+  staffAssignments: number
+  disputes: number
 }
 
 export type MeterCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   readings?: boolean | MeterCountOutputTypeCountReadingsArgs
   bills?: boolean | MeterCountOutputTypeCountBillsArgs
+  staffAssignments?: boolean | MeterCountOutputTypeCountStaffAssignmentsArgs
+  disputes?: boolean | MeterCountOutputTypeCountDisputesArgs
 }
 
 /**
@@ -1041,6 +1303,20 @@ export type MeterCountOutputTypeCountBillsArgs<ExtArgs extends runtime.Types.Ext
   where?: Prisma.BillWhereInput
 }
 
+/**
+ * MeterCountOutputType without action
+ */
+export type MeterCountOutputTypeCountStaffAssignmentsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.StaffMeterAssignmentWhereInput
+}
+
+/**
+ * MeterCountOutputType without action
+ */
+export type MeterCountOutputTypeCountDisputesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.DisputeWhereInput
+}
+
 
 export type MeterSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1060,6 +1336,8 @@ export type MeterSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   readings?: boolean | Prisma.Meter$readingsArgs<ExtArgs>
   bills?: boolean | Prisma.Meter$billsArgs<ExtArgs>
+  staffAssignments?: boolean | Prisma.Meter$staffAssignmentsArgs<ExtArgs>
+  disputes?: boolean | Prisma.Meter$disputesArgs<ExtArgs>
   _count?: boolean | Prisma.MeterCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["meter"]>
 
@@ -1121,6 +1399,8 @@ export type MeterInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   readings?: boolean | Prisma.Meter$readingsArgs<ExtArgs>
   bills?: boolean | Prisma.Meter$billsArgs<ExtArgs>
+  staffAssignments?: boolean | Prisma.Meter$staffAssignmentsArgs<ExtArgs>
+  disputes?: boolean | Prisma.Meter$disputesArgs<ExtArgs>
   _count?: boolean | Prisma.MeterCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type MeterIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1136,6 +1416,8 @@ export type $MeterPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     user: Prisma.$UserPayload<ExtArgs>
     readings: Prisma.$ReadingPayload<ExtArgs>[]
     bills: Prisma.$BillPayload<ExtArgs>[]
+    staffAssignments: Prisma.$StaffMeterAssignmentPayload<ExtArgs>[]
+    disputes: Prisma.$DisputePayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1549,6 +1831,8 @@ export interface Prisma__MeterClient<T, Null = never, ExtArgs extends runtime.Ty
   user<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   readings<T extends Prisma.Meter$readingsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Meter$readingsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ReadingPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   bills<T extends Prisma.Meter$billsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Meter$billsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BillPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  staffAssignments<T extends Prisma.Meter$staffAssignmentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Meter$staffAssignmentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$StaffMeterAssignmentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  disputes<T extends Prisma.Meter$disputesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Meter$disputesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DisputePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2033,6 +2317,54 @@ export type Meter$billsArgs<ExtArgs extends runtime.Types.Extensions.InternalArg
   take?: number
   skip?: number
   distinct?: Prisma.BillScalarFieldEnum | Prisma.BillScalarFieldEnum[]
+}
+
+/**
+ * Meter.staffAssignments
+ */
+export type Meter$staffAssignmentsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the StaffMeterAssignment
+   */
+  select?: Prisma.StaffMeterAssignmentSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the StaffMeterAssignment
+   */
+  omit?: Prisma.StaffMeterAssignmentOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.StaffMeterAssignmentInclude<ExtArgs> | null
+  where?: Prisma.StaffMeterAssignmentWhereInput
+  orderBy?: Prisma.StaffMeterAssignmentOrderByWithRelationInput | Prisma.StaffMeterAssignmentOrderByWithRelationInput[]
+  cursor?: Prisma.StaffMeterAssignmentWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.StaffMeterAssignmentScalarFieldEnum | Prisma.StaffMeterAssignmentScalarFieldEnum[]
+}
+
+/**
+ * Meter.disputes
+ */
+export type Meter$disputesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Dispute
+   */
+  select?: Prisma.DisputeSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Dispute
+   */
+  omit?: Prisma.DisputeOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.DisputeInclude<ExtArgs> | null
+  where?: Prisma.DisputeWhereInput
+  orderBy?: Prisma.DisputeOrderByWithRelationInput | Prisma.DisputeOrderByWithRelationInput[]
+  cursor?: Prisma.DisputeWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.DisputeScalarFieldEnum | Prisma.DisputeScalarFieldEnum[]
 }
 
 /**

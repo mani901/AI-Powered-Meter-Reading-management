@@ -18,13 +18,14 @@ export function MeterCard({
   onView,
 }: {
   meter: Meter;
-  onUpload: () => void;
-  onDelete: () => void;
+  onUpload?: () => void;
+  onDelete?: () => void;
   onView: () => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const status = statusConfig[meter.status];
   const StatusIcon = status.icon;
+  const hasMenuItems = onUpload || onDelete;
 
   return (
     <div className="bg-white border border-slate-200 rounded-xl overflow-hidden hover:shadow-md transition-shadow">
@@ -39,25 +40,33 @@ export function MeterCard({
             <p className="text-slate-400 text-xs font-mono">{meter.meterSerial}</p>
           </div>
         </div>
-        <div className="relative">
-          <button onClick={() => setMenuOpen(p => !p)} className="text-slate-400 hover:text-white p-1 rounded">
-            <MoreVertical size={18} />
-          </button>
-          {menuOpen && (
-            <div className="absolute right-0 top-8 bg-white border border-slate-200 rounded-xl shadow-xl z-10 min-w-40 overflow-hidden">
-              <button onClick={() => { onView(); setMenuOpen(false); }} className="w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2">
-                <Gauge size={14} /> View Details
-              </button>
-              <button onClick={() => { onUpload(); setMenuOpen(false); }} className="w-full text-left px-4 py-2.5 text-sm text-blue-600 hover:bg-blue-50 flex items-center gap-2">
-                <Camera size={14} /> Upload Reading
-              </button>
-              <div className="border-t border-slate-100" />
-              <button onClick={() => { onDelete(); setMenuOpen(false); }} className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
-                <Trash2 size={14} /> Delete Meter
-              </button>
-            </div>
-          )}
-        </div>
+        {hasMenuItems && (
+          <div className="relative">
+            <button onClick={() => setMenuOpen(p => !p)} className="text-slate-400 hover:text-white p-1 rounded">
+              <MoreVertical size={18} />
+            </button>
+            {menuOpen && (
+              <div className="absolute right-0 top-8 bg-white border border-slate-200 rounded-xl shadow-xl z-10 min-w-40 overflow-hidden">
+                <button onClick={() => { onView(); setMenuOpen(false); }} className="w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2">
+                  <Gauge size={14} /> View Details
+                </button>
+                {onUpload && (
+                  <button onClick={() => { onUpload(); setMenuOpen(false); }} className="w-full text-left px-4 py-2.5 text-sm text-blue-600 hover:bg-blue-50 flex items-center gap-2">
+                    <Camera size={14} /> Upload Reading
+                  </button>
+                )}
+                {onDelete && (
+                  <>
+                    <div className="border-t border-slate-100" />
+                    <button onClick={() => { onDelete(); setMenuOpen(false); }} className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
+                      <Trash2 size={14} /> Delete Meter
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Card body */}
@@ -95,21 +104,23 @@ export function MeterCard({
         </div>
 
         <div className="flex gap-2 mt-5">
-          {meter.status === 'PENDING' || meter.status === 'REJECTED' ? (
-            <div className={`flex-1 py-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 border ${
-              meter.status === 'PENDING'
-                ? 'bg-amber-50 text-amber-600 border-amber-200'
-                : 'bg-red-50 text-red-600 border-red-200'
-            }`}>
-              {meter.status === 'PENDING' ? <><Clock size={13} /> Awaiting Approval</> : <><XCircle size={13} /> Registration Rejected</>}
-            </div>
-          ) : (
-            <button
-              onClick={onUpload}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 transition-colors"
-            >
-              <Camera size={13} /> Upload Reading
-            </button>
+          {onUpload && (
+            meter.status === 'PENDING' || meter.status === 'REJECTED' ? (
+              <div className={`flex-1 py-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 border ${
+                meter.status === 'PENDING'
+                  ? 'bg-amber-50 text-amber-600 border-amber-200'
+                  : 'bg-red-50 text-red-600 border-red-200'
+              }`}>
+                {meter.status === 'PENDING' ? <><Clock size={13} /> Awaiting Approval</> : <><XCircle size={13} /> Registration Rejected</>}
+              </div>
+            ) : (
+              <button
+                onClick={onUpload}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 transition-colors"
+              >
+                <Camera size={13} /> Upload Reading
+              </button>
+            )
           )}
           <button
             onClick={onView}

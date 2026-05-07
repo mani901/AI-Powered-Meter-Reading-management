@@ -84,3 +84,13 @@ export type RefreshToken = Prisma.RefreshTokenModel
  * 
  */
 export type AuditLog = Prisma.AuditLogModel
+/**
+ * Model StaffMeterAssignment
+ * 
+ */
+export type StaffMeterAssignment = Prisma.StaffMeterAssignmentModel
+/**
+ * Model Dispute
+ * 
+ */
+export type Dispute = Prisma.DisputeModel

@@ -14,7 +14,18 @@ import type { Prisma, ReadingSource, ReadingStatus } from "../generated/prisma/c
 export const readingsRouter = Router();
 readingsRouter.use(requireAuth);
 
-// POST /api/readings/upload (no persistence)
+async function canSubmitReading(userId: string, role: string, meterId: string): Promise<boolean> {
+  if (role === "ADMIN") return true;
+  if (role === "FIELD_STAFF") {
+    const a = await prisma.staffMeterAssignment.findUnique({
+      where: { staffId_meterId: { staffId: userId, meterId } },
+    });
+    return !!a?.isActive;
+  }
+  return false;
+}
+
+// POST /api/readings/upload (no persistence) — FIELD_STAFF or ADMIN only
 readingsRouter.post(
   "/upload",
   upload.single("image"),
@@ -25,7 +36,7 @@ readingsRouter.post(
 
     const meter = await prisma.meter.findUnique({ where: { id: meterId } });
     if (!meter) throw new NotFoundError("Meter not found");
-    if (req.user!.role !== "ADMIN" && meter.userId !== req.user!.id) throw new ForbiddenError();
+    if (!await canSubmitReading(req.user!.id, req.user!.role, meterId)) throw new ForbiddenError("Only assigned field staff can submit readings");
 
     const uploaded = await uploadImageBuffer({
       buffer: req.file.buffer,
@@ -74,10 +85,7 @@ const commitSchema = z.object({
 readingsRouter.post("/", validate(commitSchema), async (req, res) => {
   const meter = await prisma.meter.findUnique({ where: { id: req.body.meterId } });
   if (!meter) throw new NotFoundError("Meter not found");
-  if (req.user!.role !== "ADMIN" && meter.userId !== req.user!.id) throw new ForbiddenError();
-
-  const userSettings = await prisma.userSettings.findUnique({ where: { userId: req.user!.id } });
-  const threshold = (userSettings?.confidenceThreshold ?? 75) / 100;
+  if (!await canSubmitReading(req.user!.id, req.user!.role, req.body.meterId)) throw new ForbiddenError("Only assigned field staff can submit readings");
 
   const previous = meter.lastReadingValue !== null && meter.lastReadingValue !== undefined ? Number(meter.lastReadingValue) : undefined;
   const consumption = previous !== undefined ? req.body.readingValue - previous : undefined;
@@ -89,15 +97,15 @@ readingsRouter.post("/", validate(commitSchema), async (req, res) => {
     consumption > 450 ? `Unusually high consumption (${consumption} kWh)` :
     undefined;
 
-  const status =
-    req.body.source !== "MANUAL" && (req.body.confidenceScore ?? 1) < threshold
-      ? "FLAGGED"
-      : "ACCEPTED";
+  // Staff submissions always go to PENDING_REVIEW; admin can directly ACCEPT/FLAG
+  const readingStatus: "PENDING_REVIEW" | "ACCEPTED" | "FLAGGED" = req.user!.role === "ADMIN"
+    ? (req.body.source !== "MANUAL" && (req.body.confidenceScore ?? 1) < 0.75 ? "FLAGGED" : "ACCEPTED")
+    : "PENDING_REVIEW";
 
   const reading = await prisma.reading.create({
     data: {
       meterId: meter.id,
-      userId: meter.userId,
+      userId: req.user!.id,
       readingValue: req.body.readingValue,
       previousReading: previous ?? null,
       consumption: consumption ?? null,
@@ -106,7 +114,7 @@ readingsRouter.post("/", validate(commitSchema), async (req, res) => {
       imagePublicId: req.body.imagePublicId ?? null,
       source: req.body.source,
       confidenceScore: req.body.confidenceScore ?? null,
-      status,
+      status: readingStatus,
       isAnomalous,
       anomalyReason: anomalyReason ?? null,
     },
@@ -121,29 +129,17 @@ readingsRouter.post("/", validate(commitSchema), async (req, res) => {
   });
 
   const meterLabel = meter.meterLabel ?? meter.meterSerial;
+  // Notify the meter owner
   await prisma.notification.create({
     data: {
       userId: meter.userId,
       type: "READING_SUBMITTED",
-      title: req.body.source === "MANUAL" ? "Manual Reading Submitted" : "Reading Submitted Successfully",
-      message: `Your meter reading of ${Math.round(req.body.readingValue).toLocaleString()} for ${meterLabel} has been recorded.`,
+      title: "New Reading Submitted",
+      message: `A new reading of ${Math.round(req.body.readingValue).toLocaleString()} has been submitted for your meter ${meterLabel} and is pending admin approval.`,
       isRead: false,
-      link: "/readings",
+      link: "/dashboard",
     },
   });
-
-  if (status === "FLAGGED") {
-    await prisma.notification.create({
-      data: {
-        userId: meter.userId,
-        type: "LOW_CONFIDENCE_READING",
-        title: "Low Confidence Reading",
-        message: `Reading from ${meterLabel} has ${Math.round((req.body.confidenceScore ?? 0) * 100)}% confidence. An admin will review it.`,
-        isRead: false,
-        link: "/admin/readings",
-      },
-    });
-  }
 
   await prisma.auditLog.create({
     data: {
@@ -169,73 +165,67 @@ const manualSchema = z.object({
 });
 
 readingsRouter.post("/manual", validate(manualSchema), async (req, res) => {
-  req.body = { ...req.body, source: "MANUAL" };
-  // Delegate to the main commit handler shape
-  const result = await prisma.$transaction(async () => {
-    const meter = await prisma.meter.findUnique({ where: { id: req.body.meterId } });
-    if (!meter) throw new NotFoundError("Meter not found");
-    if (req.user!.role !== "ADMIN" && meter.userId !== req.user!.id) throw new ForbiddenError();
+  const meter = await prisma.meter.findUnique({ where: { id: req.body.meterId } });
+  if (!meter) throw new NotFoundError("Meter not found");
+  if (!await canSubmitReading(req.user!.id, req.user!.role, req.body.meterId)) throw new ForbiddenError("Only assigned field staff can submit readings");
 
-    const previous = meter.lastReadingValue !== null && meter.lastReadingValue !== undefined ? Number(meter.lastReadingValue) : undefined;
-    const consumption = previous !== undefined ? req.body.readingValue - previous : undefined;
+  const previous = meter.lastReadingValue !== null && meter.lastReadingValue !== undefined ? Number(meter.lastReadingValue) : undefined;
+  const consumption = previous !== undefined ? req.body.readingValue - previous : undefined;
 
-    const isAnomalous = consumption !== undefined ? consumption < 0 || consumption > 450 : false;
-    const anomalyReason =
-      consumption === undefined ? undefined :
-      consumption < 0 ? "Manual reading lower than previous reading" :
-      consumption > 450 ? `Unusually high consumption (${consumption} kWh)` :
-      undefined;
+  const isAnomalous = consumption !== undefined ? consumption < 0 || consumption > 450 : false;
+  const anomalyReason =
+    consumption === undefined ? undefined :
+    consumption < 0 ? "Manual reading lower than previous reading" :
+    consumption > 450 ? `Unusually high consumption (${consumption} kWh)` :
+    undefined;
 
-    const reading = await prisma.reading.create({
-      data: {
-        meterId: meter.id,
-        userId: meter.userId,
-        readingValue: req.body.readingValue,
-        previousReading: previous ?? null,
-        consumption: consumption ?? null,
-        readingDate: new Date(req.body.readingDate),
-        source: "MANUAL",
-        status: "ACCEPTED",
-        isAnomalous,
-        anomalyReason: anomalyReason ?? null,
-      },
-    });
-
-    await prisma.meter.update({
-      where: { id: meter.id },
-      data: {
-        lastReadingValue: req.body.readingValue,
-        lastReadingDate: new Date(req.body.readingDate),
-      },
-    });
-
-    await prisma.notification.create({
-      data: {
-        userId: meter.userId,
-        type: "READING_SUBMITTED",
-        title: "Manual Reading Submitted",
-        message: `Manual reading of ${Math.round(req.body.readingValue).toLocaleString()} for ${meter.meterLabel ?? meter.meterSerial} has been recorded.`,
-        isRead: false,
-        link: "/readings",
-      },
-    });
-
-    await prisma.auditLog.create({
-      data: {
-        userId: req.user!.id,
-        action: "READING_CREATED",
-        entity: "Reading",
-        entityId: reading.id,
-        details: `MANUAL reading ${req.body.readingValue} for meter ${meter.meterSerial}`,
-        ipAddress: getClientIp(req),
-        userAgent: getUserAgent(req),
-      },
-    });
-
-    return { reading, meter };
+  const reading = await prisma.reading.create({
+    data: {
+      meterId: meter.id,
+      userId: req.user!.id,
+      readingValue: req.body.readingValue,
+      previousReading: previous ?? null,
+      consumption: consumption ?? null,
+      readingDate: new Date(req.body.readingDate),
+      source: "MANUAL",
+      status: "PENDING_REVIEW",
+      isAnomalous,
+      anomalyReason: anomalyReason ?? null,
+    },
   });
 
-  res.status(201).json({ reading: toReadingDto(result.reading, result.meter) });
+  await prisma.meter.update({
+    where: { id: meter.id },
+    data: {
+      lastReadingValue: req.body.readingValue,
+      lastReadingDate: new Date(req.body.readingDate),
+    },
+  });
+
+  await prisma.notification.create({
+    data: {
+      userId: meter.userId,
+      type: "READING_SUBMITTED",
+      title: "New Manual Reading Submitted",
+      message: `A manual reading of ${Math.round(req.body.readingValue).toLocaleString()} has been submitted for your meter ${meter.meterLabel ?? meter.meterSerial} and is pending admin approval.`,
+      isRead: false,
+      link: "/dashboard",
+    },
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      userId: req.user!.id,
+      action: "READING_CREATED",
+      entity: "Reading",
+      entityId: reading.id,
+      details: `MANUAL reading ${req.body.readingValue} for meter ${meter.meterSerial}`,
+      ipAddress: getClientIp(req),
+      userAgent: getUserAgent(req),
+    },
+  });
+
+  res.status(201).json({ reading: toReadingDto(reading, meter) });
 });
 
 readingsRouter.get("/", async (req, res) => {
@@ -243,35 +233,42 @@ readingsRouter.get("/", async (req, res) => {
   const meterId = typeof req.query.meterId === "string" ? req.query.meterId : undefined;
   const status = typeof req.query.status === "string" ? req.query.status : undefined;
   const source = typeof req.query.source === "string" ? req.query.source : undefined;
-  const search = typeof req.query.search === "string" ? req.query.search : undefined;
   const from = typeof req.query.from === "string" ? req.query.from : undefined;
   const to = typeof req.query.to === "string" ? req.query.to : undefined;
 
-  const where: Prisma.ReadingWhereInput = {
-    userId: req.user!.role === "ADMIN" && typeof req.query.userId === "string" ? req.query.userId : req.user!.id,
-    ...(meterId && meterId !== "ALL" ? { meterId } : {}),
-    ...(status && status !== "ALL" ? { status: status as ReadingStatus } : {}),
-    ...(source && source !== "ALL" ? { source: source as ReadingSource } : {}),
-    ...(from || to
-      ? { readingDate: { ...(from ? { gte: new Date(from) } : {}), ...(to ? { lte: new Date(to) } : {}) } }
-      : {}),
-  };
+  let where: Prisma.ReadingWhereInput;
 
-  if (search) {
-    const ownerUserId = req.user!.role === "ADMIN" && typeof req.query.userId === "string"
-      ? req.query.userId
-      : req.user!.id;
-    const meters = await prisma.meter.findMany({
-      where: {
-        userId: ownerUserId,
-        OR: [
-          { meterSerial: { contains: search, mode: "insensitive" } },
-          { meterLabel: { contains: search, mode: "insensitive" } },
-        ],
-      },
+  if (req.user!.role === "ADMIN") {
+    const filterUserId = typeof req.query.userId === "string" ? req.query.userId : undefined;
+    where = {
+      ...(filterUserId ? { userId: filterUserId } : {}),
+      ...(meterId && meterId !== "ALL" ? { meterId } : {}),
+      ...(status && status !== "ALL" ? { status: status as ReadingStatus } : {}),
+      ...(source && source !== "ALL" ? { source: source as ReadingSource } : {}),
+      ...(from || to ? { readingDate: { ...(from ? { gte: new Date(from) } : {}), ...(to ? { lte: new Date(to) } : {}) } } : {}),
+    };
+  } else if (req.user!.role === "FIELD_STAFF") {
+    // Staff sees readings they submitted
+    where = {
+      userId: req.user!.id,
+      ...(meterId && meterId !== "ALL" ? { meterId } : {}),
+      ...(status && status !== "ALL" ? { status: status as ReadingStatus } : {}),
+      ...(source && source !== "ALL" ? { source: source as ReadingSource } : {}),
+      ...(from || to ? { readingDate: { ...(from ? { gte: new Date(from) } : {}), ...(to ? { lte: new Date(to) } : {}) } } : {}),
+    };
+  } else {
+    // CONSUMER: sees readings for their meters
+    const consumerMeters = await prisma.meter.findMany({
+      where: { userId: req.user!.id },
       select: { id: true },
     });
-    where.meterId = { in: meters.map((m) => m.id) };
+    const consumerMeterIds = consumerMeters.map((m) => m.id);
+    where = {
+      meterId: meterId && meterId !== "ALL" ? meterId : { in: consumerMeterIds },
+      ...(status && status !== "ALL" ? { status: status as ReadingStatus } : {}),
+      ...(source && source !== "ALL" ? { source: source as ReadingSource } : {}),
+      ...(from || to ? { readingDate: { ...(from ? { gte: new Date(from) } : {}), ...(to ? { lte: new Date(to) } : {}) } } : {}),
+    };
   }
 
   const [total, rows] = await Promise.all([
@@ -281,19 +278,46 @@ readingsRouter.get("/", async (req, res) => {
       orderBy: { readingDate: "desc" },
       skip,
       take: limit,
-      include: { meter: true },
+      include: {
+        meter: true,
+        user: { select: { id: true, firstName: true, lastName: true } },
+      },
     }),
   ]);
 
-  res.json(toPaginatedResponse({ data: rows.map((r) => toReadingDto(r, r.meter)), page, limit, total }));
+  res.json(toPaginatedResponse({
+    data: rows.map((r) => ({
+      ...toReadingDto(r, r.meter),
+      submittedBy: r.user ? { id: r.user.id, name: `${r.user.firstName} ${r.user.lastName}` } : undefined,
+    })),
+    page,
+    limit,
+    total,
+  }));
 });
 
 readingsRouter.get("/:id", async (req, res) => {
   const id = req.params.id as string;
-  const reading = await prisma.reading.findUnique({ where: { id }, include: { meter: true } });
+  const reading = await prisma.reading.findUnique({
+    where: { id },
+    include: {
+      meter: true,
+      user: { select: { id: true, firstName: true, lastName: true } },
+    },
+  });
   if (!reading) throw new NotFoundError("Reading not found");
-  if (req.user!.role !== "ADMIN" && reading.userId !== req.user!.id) throw new ForbiddenError();
-  res.json({ reading: toReadingDto(reading, reading.meter) });
+
+  if (req.user!.role === "ADMIN") {
+    return res.json({ reading: { ...toReadingDto(reading, reading.meter), submittedBy: reading.user ? { id: reading.user.id, name: `${reading.user.firstName} ${reading.user.lastName}` } : undefined } });
+  }
+  if (req.user!.role === "FIELD_STAFF" && reading.userId === req.user!.id) {
+    return res.json({ reading: toReadingDto(reading, reading.meter) });
+  }
+  // CONSUMER: can see readings for their meters
+  if (reading.meter.userId === req.user!.id) {
+    return res.json({ reading: toReadingDto(reading, reading.meter) });
+  }
+  throw new ForbiddenError();
 });
 
 readingsRouter.delete("/:id", async (req, res) => {
@@ -313,7 +337,7 @@ const reviewSchema = z.object({
   }),
 });
 
-readingsRouter.post("/:id/review", requireRole("ADMIN"), validate(reviewSchema), async (req, res) => {
+readingsRouter.post("/:id/review", requireRole(["ADMIN"]), validate(reviewSchema), async (req, res) => {
   const id = req.params.id as string;
   const reading = await prisma.reading.findUnique({ where: { id }, include: { meter: true } });
   if (!reading) throw new NotFoundError("Reading not found");

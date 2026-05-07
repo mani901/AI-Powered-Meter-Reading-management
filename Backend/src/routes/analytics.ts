@@ -12,11 +12,18 @@ analyticsRouter.get("/consumer/summary", async (req, res) => {
   const months = ["3", "6", "12"].includes(period) ? Number(period) : 12;
   const from = addMonths(new Date(), -months);
 
+  // Find meters owned by this consumer
+  const consumerMeters = await prisma.meter.findMany({
+    where: { userId: req.user!.id },
+    select: { id: true },
+  });
+  const consumerMeterIds = consumerMeters.map((m) => m.id);
+
   const readings = await prisma.reading.findMany({
     where: {
-      userId: req.user!.id,
-      ...(meterId !== "ALL" ? { meterId } : {}),
+      meterId: meterId !== "ALL" ? meterId : { in: consumerMeterIds },
       readingDate: { gte: from },
+      status: "ACCEPTED",
     },
     select: { readingDate: true, consumption: true },
   });
@@ -42,7 +49,7 @@ analyticsRouter.get("/consumer/summary", async (req, res) => {
   res.json({ period: months, meterId, avg, data });
 });
 
-analyticsRouter.get("/admin/dashboard", requireRole("ADMIN"), async (_req, res) => {
+analyticsRouter.get("/admin/dashboard", requireRole(["ADMIN"]), async (_req, res) => {
   const now = new Date();
   const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
 
@@ -107,7 +114,7 @@ analyticsRouter.get("/admin/dashboard", requireRole("ADMIN"), async (_req, res) 
   });
 });
 
-analyticsRouter.get("/admin/reports/user-growth", requireRole("ADMIN"), async (_req, res) => {
+analyticsRouter.get("/admin/reports/user-growth", requireRole(["ADMIN"]), async (_req, res) => {
   const data = await Promise.all(
     Array.from({ length: 6 }).map(async (_v, idx) => {
       const d = addMonths(new Date(), -(5 - idx));
@@ -119,7 +126,7 @@ analyticsRouter.get("/admin/reports/user-growth", requireRole("ADMIN"), async (_
   res.json({ data });
 });
 
-analyticsRouter.get("/admin/reports/revenue", requireRole("ADMIN"), async (_req, res) => {
+analyticsRouter.get("/admin/reports/revenue", requireRole(["ADMIN"]), async (_req, res) => {
   const data = await Promise.all(
     Array.from({ length: 6 }).map(async (_v, idx) => {
       const d = addMonths(new Date(), -(5 - idx));
@@ -130,6 +137,36 @@ analyticsRouter.get("/admin/reports/revenue", requireRole("ADMIN"), async (_req,
     }),
   );
   res.json({ data });
+});
+
+analyticsRouter.get("/staff/summary", requireRole(["FIELD_STAFF"]), async (req, res) => {
+  const now = new Date();
+  const startOfToday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+
+  const [assignedMeters, totalSubmitted, submittedToday, pendingReviews, approved, rejected] = await Promise.all([
+    prisma.staffMeterAssignment.count({ where: { staffId: req.user!.id, isActive: true } }),
+    prisma.reading.count({ where: { userId: req.user!.id } }),
+    prisma.reading.count({ where: { userId: req.user!.id, createdAt: { gte: startOfToday } } }),
+    prisma.reading.count({ where: { userId: req.user!.id, status: "PENDING_REVIEW" } }),
+    prisma.reading.count({ where: { userId: req.user!.id, status: "ACCEPTED" } }),
+    prisma.reading.count({ where: { userId: req.user!.id, status: "REJECTED" } }),
+  ]);
+
+  res.json({ assignedMeters, totalSubmitted, submittedToday, pendingReviews, approved, rejected });
+});
+
+analyticsRouter.get("/admin/staff-overview", requireRole(["ADMIN"]), async (_req, res) => {
+  const now = new Date();
+  const startOfToday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+
+  const [totalStaff, activeStaff, readingsToday, pendingReadings] = await Promise.all([
+    prisma.user.count({ where: { role: "FIELD_STAFF" } }),
+    prisma.user.count({ where: { role: "FIELD_STAFF", isActive: true } }),
+    prisma.reading.count({ where: { createdAt: { gte: startOfToday } } }),
+    prisma.reading.count({ where: { status: "PENDING_REVIEW" } }),
+  ]);
+
+  res.json({ totalStaff, activeStaff, readingsToday, pendingReadings });
 });
 
 async function buildConfidenceDistribution() {

@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router';
-import { ArrowLeft, Camera, Pencil, Trash2, MapPin, Calendar, Hash, Zap, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Camera, Trash2, MapPin, Calendar, Hash, Zap, AlertTriangle } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useApp } from '../../context/AppContext';
 import { toast } from 'sonner';
@@ -13,7 +13,9 @@ const statusConfig = {
 export default function MeterDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { meters, readings, deleteMeter } = useApp();
+  const { meters, readings, deleteMeter, currentUser } = useApp();
+
+  const isAdmin = currentUser?.role === 'ADMIN';
 
   const meter = meters.find(m => m.id === id);
   const meterReadings = readings.filter(r => r.meterId === id).sort((a, b) =>
@@ -71,20 +73,16 @@ export default function MeterDetail() {
             <p className="text-slate-500 text-sm font-mono">{meter.meterSerial}</p>
           </div>
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => navigate('/readings/upload')}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2 transition-colors"
-          >
-            <Camera size={16} /> Upload Reading
-          </button>
-          <button
-            onClick={handleDelete}
-            className="bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2 transition-colors"
-          >
-            <Trash2 size={16} /> Delete
-          </button>
-        </div>
+        {isAdmin && (
+          <div className="flex gap-2">
+            <button
+              onClick={handleDelete}
+              className="bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2 transition-colors"
+            >
+              <Trash2 size={16} /> Deactivate
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Info cards */}
@@ -154,13 +152,14 @@ export default function MeterDetail() {
       <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
           <h3 className="font-semibold text-slate-900">Reading History</h3>
-          <button onClick={() => navigate('/readings')} className="text-blue-600 hover:text-blue-700 text-xs font-medium">View all readings</button>
+          {isAdmin && (
+            <button onClick={() => navigate('/admin/readings')} className="text-blue-600 hover:text-blue-700 text-xs font-medium">View all readings</button>
+          )}
         </div>
         {meterReadings.length === 0 ? (
           <div className="text-center py-12">
             <Camera size={36} className="mx-auto text-slate-300 mb-3" />
-            <p className="text-slate-500 text-sm">No readings yet</p>
-            <button onClick={() => navigate('/readings/upload')} className="mt-3 text-blue-600 text-sm hover:underline">Upload first reading</button>
+            <p className="text-slate-500 text-sm">No readings recorded yet</p>
           </div>
         ) : (
           <div className="overflow-x-auto">

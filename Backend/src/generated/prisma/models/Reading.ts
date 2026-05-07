@@ -343,6 +343,7 @@ export type ReadingWhereInput = {
   meter?: Prisma.XOR<Prisma.MeterScalarRelationFilter, Prisma.MeterWhereInput>
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   reviewedBy?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
+  disputes?: Prisma.DisputeListRelationFilter
 }
 
 export type ReadingOrderByWithRelationInput = {
@@ -368,6 +369,7 @@ export type ReadingOrderByWithRelationInput = {
   meter?: Prisma.MeterOrderByWithRelationInput
   user?: Prisma.UserOrderByWithRelationInput
   reviewedBy?: Prisma.UserOrderByWithRelationInput
+  disputes?: Prisma.DisputeOrderByRelationAggregateInput
 }
 
 export type ReadingWhereUniqueInput = Prisma.AtLeast<{
@@ -396,6 +398,7 @@ export type ReadingWhereUniqueInput = Prisma.AtLeast<{
   meter?: Prisma.XOR<Prisma.MeterScalarRelationFilter, Prisma.MeterWhereInput>
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   reviewedBy?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
+  disputes?: Prisma.DisputeListRelationFilter
 }, "id">
 
 export type ReadingOrderByWithAggregationInput = {
@@ -470,6 +473,7 @@ export type ReadingCreateInput = {
   meter: Prisma.MeterCreateNestedOneWithoutReadingsInput
   user: Prisma.UserCreateNestedOneWithoutReadingsInput
   reviewedBy?: Prisma.UserCreateNestedOneWithoutReviewedReadingsInput
+  disputes?: Prisma.DisputeCreateNestedManyWithoutReadingInput
 }
 
 export type ReadingUncheckedCreateInput = {
@@ -492,6 +496,7 @@ export type ReadingUncheckedCreateInput = {
   reviewedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  disputes?: Prisma.DisputeUncheckedCreateNestedManyWithoutReadingInput
 }
 
 export type ReadingUpdateInput = {
@@ -514,6 +519,7 @@ export type ReadingUpdateInput = {
   meter?: Prisma.MeterUpdateOneRequiredWithoutReadingsNestedInput
   user?: Prisma.UserUpdateOneRequiredWithoutReadingsNestedInput
   reviewedBy?: Prisma.UserUpdateOneWithoutReviewedReadingsNestedInput
+  disputes?: Prisma.DisputeUpdateManyWithoutReadingNestedInput
 }
 
 export type ReadingUncheckedUpdateInput = {
@@ -536,6 +542,7 @@ export type ReadingUncheckedUpdateInput = {
   reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  disputes?: Prisma.DisputeUncheckedUpdateManyWithoutReadingNestedInput
 }
 
 export type ReadingCreateManyInput = {
@@ -691,6 +698,11 @@ export type ReadingSumOrderByAggregateInput = {
   confidenceScore?: Prisma.SortOrder
 }
 
+export type ReadingNullableScalarRelationFilter = {
+  is?: Prisma.ReadingWhereInput | null
+  isNot?: Prisma.ReadingWhereInput | null
+}
+
 export type ReadingCreateNestedManyWithoutUserInput = {
   create?: Prisma.XOR<Prisma.ReadingCreateWithoutUserInput, Prisma.ReadingUncheckedCreateWithoutUserInput> | Prisma.ReadingCreateWithoutUserInput[] | Prisma.ReadingUncheckedCreateWithoutUserInput[]
   connectOrCreate?: Prisma.ReadingCreateOrConnectWithoutUserInput | Prisma.ReadingCreateOrConnectWithoutUserInput[]
@@ -841,6 +853,22 @@ export type EnumReadingStatusFieldUpdateOperationsInput = {
   set?: $Enums.ReadingStatus
 }
 
+export type ReadingCreateNestedOneWithoutDisputesInput = {
+  create?: Prisma.XOR<Prisma.ReadingCreateWithoutDisputesInput, Prisma.ReadingUncheckedCreateWithoutDisputesInput>
+  connectOrCreate?: Prisma.ReadingCreateOrConnectWithoutDisputesInput
+  connect?: Prisma.ReadingWhereUniqueInput
+}
+
+export type ReadingUpdateOneWithoutDisputesNestedInput = {
+  create?: Prisma.XOR<Prisma.ReadingCreateWithoutDisputesInput, Prisma.ReadingUncheckedCreateWithoutDisputesInput>
+  connectOrCreate?: Prisma.ReadingCreateOrConnectWithoutDisputesInput
+  upsert?: Prisma.ReadingUpsertWithoutDisputesInput
+  disconnect?: Prisma.ReadingWhereInput | boolean
+  delete?: Prisma.ReadingWhereInput | boolean
+  connect?: Prisma.ReadingWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ReadingUpdateToOneWithWhereWithoutDisputesInput, Prisma.ReadingUpdateWithoutDisputesInput>, Prisma.ReadingUncheckedUpdateWithoutDisputesInput>
+}
+
 export type ReadingCreateWithoutUserInput = {
   id?: string
   readingValue: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -860,6 +888,7 @@ export type ReadingCreateWithoutUserInput = {
   updatedAt?: Date | string
   meter: Prisma.MeterCreateNestedOneWithoutReadingsInput
   reviewedBy?: Prisma.UserCreateNestedOneWithoutReviewedReadingsInput
+  disputes?: Prisma.DisputeCreateNestedManyWithoutReadingInput
 }
 
 export type ReadingUncheckedCreateWithoutUserInput = {
@@ -881,6 +910,7 @@ export type ReadingUncheckedCreateWithoutUserInput = {
   reviewedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  disputes?: Prisma.DisputeUncheckedCreateNestedManyWithoutReadingInput
 }
 
 export type ReadingCreateOrConnectWithoutUserInput = {
@@ -912,6 +942,7 @@ export type ReadingCreateWithoutReviewedByInput = {
   updatedAt?: Date | string
   meter: Prisma.MeterCreateNestedOneWithoutReadingsInput
   user: Prisma.UserCreateNestedOneWithoutReadingsInput
+  disputes?: Prisma.DisputeCreateNestedManyWithoutReadingInput
 }
 
 export type ReadingUncheckedCreateWithoutReviewedByInput = {
@@ -933,6 +964,7 @@ export type ReadingUncheckedCreateWithoutReviewedByInput = {
   reviewedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  disputes?: Prisma.DisputeUncheckedCreateNestedManyWithoutReadingInput
 }
 
 export type ReadingCreateOrConnectWithoutReviewedByInput = {
@@ -1021,6 +1053,7 @@ export type ReadingCreateWithoutMeterInput = {
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutReadingsInput
   reviewedBy?: Prisma.UserCreateNestedOneWithoutReviewedReadingsInput
+  disputes?: Prisma.DisputeCreateNestedManyWithoutReadingInput
 }
 
 export type ReadingUncheckedCreateWithoutMeterInput = {
@@ -1042,6 +1075,7 @@ export type ReadingUncheckedCreateWithoutMeterInput = {
   reviewedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  disputes?: Prisma.DisputeUncheckedCreateNestedManyWithoutReadingInput
 }
 
 export type ReadingCreateOrConnectWithoutMeterInput = {
@@ -1068,6 +1102,110 @@ export type ReadingUpdateWithWhereUniqueWithoutMeterInput = {
 export type ReadingUpdateManyWithWhereWithoutMeterInput = {
   where: Prisma.ReadingScalarWhereInput
   data: Prisma.XOR<Prisma.ReadingUpdateManyMutationInput, Prisma.ReadingUncheckedUpdateManyWithoutMeterInput>
+}
+
+export type ReadingCreateWithoutDisputesInput = {
+  id?: string
+  readingValue: runtime.Decimal | runtime.DecimalJsLike | number | string
+  previousReading?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  consumption?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  readingDate: Date | string
+  imageUrl?: string | null
+  imagePublicId?: string | null
+  source: $Enums.ReadingSource
+  confidenceScore?: number | null
+  status?: $Enums.ReadingStatus
+  isAnomalous?: boolean
+  anomalyReason?: string | null
+  reviewNotes?: string | null
+  reviewedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  meter: Prisma.MeterCreateNestedOneWithoutReadingsInput
+  user: Prisma.UserCreateNestedOneWithoutReadingsInput
+  reviewedBy?: Prisma.UserCreateNestedOneWithoutReviewedReadingsInput
+}
+
+export type ReadingUncheckedCreateWithoutDisputesInput = {
+  id?: string
+  meterId: string
+  userId: string
+  readingValue: runtime.Decimal | runtime.DecimalJsLike | number | string
+  previousReading?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  consumption?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  readingDate: Date | string
+  imageUrl?: string | null
+  imagePublicId?: string | null
+  source: $Enums.ReadingSource
+  confidenceScore?: number | null
+  status?: $Enums.ReadingStatus
+  isAnomalous?: boolean
+  anomalyReason?: string | null
+  reviewNotes?: string | null
+  reviewedById?: string | null
+  reviewedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+}
+
+export type ReadingCreateOrConnectWithoutDisputesInput = {
+  where: Prisma.ReadingWhereUniqueInput
+  create: Prisma.XOR<Prisma.ReadingCreateWithoutDisputesInput, Prisma.ReadingUncheckedCreateWithoutDisputesInput>
+}
+
+export type ReadingUpsertWithoutDisputesInput = {
+  update: Prisma.XOR<Prisma.ReadingUpdateWithoutDisputesInput, Prisma.ReadingUncheckedUpdateWithoutDisputesInput>
+  create: Prisma.XOR<Prisma.ReadingCreateWithoutDisputesInput, Prisma.ReadingUncheckedCreateWithoutDisputesInput>
+  where?: Prisma.ReadingWhereInput
+}
+
+export type ReadingUpdateToOneWithWhereWithoutDisputesInput = {
+  where?: Prisma.ReadingWhereInput
+  data: Prisma.XOR<Prisma.ReadingUpdateWithoutDisputesInput, Prisma.ReadingUncheckedUpdateWithoutDisputesInput>
+}
+
+export type ReadingUpdateWithoutDisputesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  readingValue?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  previousReading?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  consumption?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  readingDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imagePublicId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source?: Prisma.EnumReadingSourceFieldUpdateOperationsInput | $Enums.ReadingSource
+  confidenceScore?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  status?: Prisma.EnumReadingStatusFieldUpdateOperationsInput | $Enums.ReadingStatus
+  isAnomalous?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  anomalyReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reviewNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  meter?: Prisma.MeterUpdateOneRequiredWithoutReadingsNestedInput
+  user?: Prisma.UserUpdateOneRequiredWithoutReadingsNestedInput
+  reviewedBy?: Prisma.UserUpdateOneWithoutReviewedReadingsNestedInput
+}
+
+export type ReadingUncheckedUpdateWithoutDisputesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  meterId?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  readingValue?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  previousReading?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  consumption?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  readingDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imagePublicId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source?: Prisma.EnumReadingSourceFieldUpdateOperationsInput | $Enums.ReadingSource
+  confidenceScore?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  status?: Prisma.EnumReadingStatusFieldUpdateOperationsInput | $Enums.ReadingStatus
+  isAnomalous?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  anomalyReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reviewNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reviewedById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type ReadingCreateManyUserInput = {
@@ -1131,6 +1269,7 @@ export type ReadingUpdateWithoutUserInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   meter?: Prisma.MeterUpdateOneRequiredWithoutReadingsNestedInput
   reviewedBy?: Prisma.UserUpdateOneWithoutReviewedReadingsNestedInput
+  disputes?: Prisma.DisputeUpdateManyWithoutReadingNestedInput
 }
 
 export type ReadingUncheckedUpdateWithoutUserInput = {
@@ -1152,6 +1291,7 @@ export type ReadingUncheckedUpdateWithoutUserInput = {
   reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  disputes?: Prisma.DisputeUncheckedUpdateManyWithoutReadingNestedInput
 }
 
 export type ReadingUncheckedUpdateManyWithoutUserInput = {
@@ -1194,6 +1334,7 @@ export type ReadingUpdateWithoutReviewedByInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   meter?: Prisma.MeterUpdateOneRequiredWithoutReadingsNestedInput
   user?: Prisma.UserUpdateOneRequiredWithoutReadingsNestedInput
+  disputes?: Prisma.DisputeUpdateManyWithoutReadingNestedInput
 }
 
 export type ReadingUncheckedUpdateWithoutReviewedByInput = {
@@ -1215,6 +1356,7 @@ export type ReadingUncheckedUpdateWithoutReviewedByInput = {
   reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  disputes?: Prisma.DisputeUncheckedUpdateManyWithoutReadingNestedInput
 }
 
 export type ReadingUncheckedUpdateManyWithoutReviewedByInput = {
@@ -1278,6 +1420,7 @@ export type ReadingUpdateWithoutMeterInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutReadingsNestedInput
   reviewedBy?: Prisma.UserUpdateOneWithoutReviewedReadingsNestedInput
+  disputes?: Prisma.DisputeUpdateManyWithoutReadingNestedInput
 }
 
 export type ReadingUncheckedUpdateWithoutMeterInput = {
@@ -1299,6 +1442,7 @@ export type ReadingUncheckedUpdateWithoutMeterInput = {
   reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  disputes?: Prisma.DisputeUncheckedUpdateManyWithoutReadingNestedInput
 }
 
 export type ReadingUncheckedUpdateManyWithoutMeterInput = {
@@ -1322,6 +1466,35 @@ export type ReadingUncheckedUpdateManyWithoutMeterInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
+
+/**
+ * Count Type ReadingCountOutputType
+ */
+
+export type ReadingCountOutputType = {
+  disputes: number
+}
+
+export type ReadingCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  disputes?: boolean | ReadingCountOutputTypeCountDisputesArgs
+}
+
+/**
+ * ReadingCountOutputType without action
+ */
+export type ReadingCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ReadingCountOutputType
+   */
+  select?: Prisma.ReadingCountOutputTypeSelect<ExtArgs> | null
+}
+
+/**
+ * ReadingCountOutputType without action
+ */
+export type ReadingCountOutputTypeCountDisputesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.DisputeWhereInput
+}
 
 
 export type ReadingSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -1347,6 +1520,8 @@ export type ReadingSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   meter?: boolean | Prisma.MeterDefaultArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   reviewedBy?: boolean | Prisma.Reading$reviewedByArgs<ExtArgs>
+  disputes?: boolean | Prisma.Reading$disputesArgs<ExtArgs>
+  _count?: boolean | Prisma.ReadingCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["reading"]>
 
 export type ReadingSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -1426,6 +1601,8 @@ export type ReadingInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs
   meter?: boolean | Prisma.MeterDefaultArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   reviewedBy?: boolean | Prisma.Reading$reviewedByArgs<ExtArgs>
+  disputes?: boolean | Prisma.Reading$disputesArgs<ExtArgs>
+  _count?: boolean | Prisma.ReadingCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type ReadingIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   meter?: boolean | Prisma.MeterDefaultArgs<ExtArgs>
@@ -1444,6 +1621,7 @@ export type $ReadingPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     meter: Prisma.$MeterPayload<ExtArgs>
     user: Prisma.$UserPayload<ExtArgs>
     reviewedBy: Prisma.$UserPayload<ExtArgs> | null
+    disputes: Prisma.$DisputePayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1862,6 +2040,7 @@ export interface Prisma__ReadingClient<T, Null = never, ExtArgs extends runtime.
   meter<T extends Prisma.MeterDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.MeterDefaultArgs<ExtArgs>>): Prisma.Prisma__MeterClient<runtime.Types.Result.GetResult<Prisma.$MeterPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   user<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   reviewedBy<T extends Prisma.Reading$reviewedByArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Reading$reviewedByArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  disputes<T extends Prisma.Reading$disputesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Reading$disputesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DisputePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2322,6 +2501,30 @@ export type Reading$reviewedByArgs<ExtArgs extends runtime.Types.Extensions.Inte
    */
   include?: Prisma.UserInclude<ExtArgs> | null
   where?: Prisma.UserWhereInput
+}
+
+/**
+ * Reading.disputes
+ */
+export type Reading$disputesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Dispute
+   */
+  select?: Prisma.DisputeSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Dispute
+   */
+  omit?: Prisma.DisputeOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.DisputeInclude<ExtArgs> | null
+  where?: Prisma.DisputeWhereInput
+  orderBy?: Prisma.DisputeOrderByWithRelationInput | Prisma.DisputeOrderByWithRelationInput[]
+  cursor?: Prisma.DisputeWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.DisputeScalarFieldEnum | Prisma.DisputeScalarFieldEnum[]
 }
 
 /**

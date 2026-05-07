@@ -59,7 +59,9 @@ export const ModelName = {
   Bill: 'Bill',
   Notification: 'Notification',
   RefreshToken: 'RefreshToken',
-  AuditLog: 'AuditLog'
+  AuditLog: 'AuditLog',
+  StaffMeterAssignment: 'StaffMeterAssignment',
+  Dispute: 'Dispute'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -251,6 +253,34 @@ export const AuditLogScalarFieldEnum = {
 } as const
 
 export type AuditLogScalarFieldEnum = (typeof AuditLogScalarFieldEnum)[keyof typeof AuditLogScalarFieldEnum]
+
+
+export const StaffMeterAssignmentScalarFieldEnum = {
+  id: 'id',
+  staffId: 'staffId',
+  meterId: 'meterId',
+  assignedAt: 'assignedAt',
+  isActive: 'isActive'
+} as const
+
+export type StaffMeterAssignmentScalarFieldEnum = (typeof StaffMeterAssignmentScalarFieldEnum)[keyof typeof StaffMeterAssignmentScalarFieldEnum]
+
+
+export const DisputeScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  meterId: 'meterId',
+  readingId: 'readingId',
+  subject: 'subject',
+  description: 'description',
+  status: 'status',
+  adminNotes: 'adminNotes',
+  resolvedAt: 'resolvedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type DisputeScalarFieldEnum = (typeof DisputeScalarFieldEnum)[keyof typeof DisputeScalarFieldEnum]
 
 
 export const SortOrder = {

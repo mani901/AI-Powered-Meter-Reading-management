@@ -7,6 +7,16 @@ import { sendResetPasswordEmail, sendVerifyEmail } from "../email/email.service.
 import { env } from "../../config/env.js";
 import type { Prisma, UserRole } from "../../generated/prisma/client.js";
 
+export type AdminCreateUserInput = {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  phone?: string;
+  city?: string;
+  role: "FIELD_STAFF" | "CONSUMER";
+};
+
 const VERIFY_EMAIL_TTL = "1d";
 const RESET_PASSWORD_TTL = "30m";
 
@@ -61,10 +71,34 @@ export async function register(input: { email: string; password: string; firstNa
   return toPublicUser(user);
 }
 
+export async function createUser(input: AdminCreateUserInput) {
+  const existing = await prisma.user.findUnique({ where: { email: input.email.toLowerCase() } });
+  if (existing) throw new ConflictError("Email already registered");
+
+  const passwordHash = await hashPassword(input.password);
+  const user = await prisma.user.create({
+    data: {
+      email: input.email.toLowerCase(),
+      passwordHash,
+      firstName: input.firstName.trim(),
+      lastName: input.lastName.trim(),
+      phone: input.phone?.trim() || null,
+      city: input.city?.trim() || null,
+      role: input.role,
+      isActive: true,
+      isPendingApproval: false,
+      isEmailVerified: true,
+      settings: { create: { confidenceThreshold: Math.round(env.DEFAULT_CONFIDENCE_THRESHOLD * 100) } },
+    },
+  });
+
+  return toPublicUser(user);
+}
+
 export async function login(input: { email: string; password: string; ip?: string; userAgent?: string }) {
   const user = await prisma.user.findUnique({ where: { email: input.email.toLowerCase() } });
   if (!user) throw new UnauthorizedError("Invalid email or password");
-  // Only consumer accounts go through the approval workflow; admins are always permitted.
+  // Only consumer accounts go through the approval workflow; admins and staff are always permitted.
   if (user.role === "CONSUMER" && user.isPendingApproval) {
     throw new UnauthorizedError("Your account is pending admin approval. Please wait.");
   }

@@ -14,6 +14,8 @@ import { billsRouter } from "./routes/bills.js";
 import { notificationsRouter } from "./routes/notifications.js";
 import { analyticsRouter } from "./routes/analytics.js";
 import { adminRouter } from "./routes/admin.js";
+import { staffRouter } from "./routes/staff.js";
+import { disputesRouter } from "./routes/disputes.js";
 import { exportRouter } from "./routes/export.js";
 import { errorHandler } from "./middleware/error-handler.js";
 import { globalLimiter } from "./middleware/rate-limit.js";
@@ -57,6 +59,8 @@ app.use("/api/bills", billsRouter);
 app.use("/api/notifications", notificationsRouter);
 app.use("/api/analytics", analyticsRouter);
 app.use("/api/admin", adminRouter);
+app.use("/api/staff", staffRouter);
+app.use("/api/disputes", disputesRouter);
 app.use("/api/export", exportRouter);
 
 // 404 handler

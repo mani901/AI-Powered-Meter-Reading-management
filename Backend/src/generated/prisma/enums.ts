@@ -11,10 +11,21 @@
 
 export const UserRole = {
   ADMIN: 'ADMIN',
+  FIELD_STAFF: 'FIELD_STAFF',
   CONSUMER: 'CONSUMER'
 } as const
 
 export type UserRole = (typeof UserRole)[keyof typeof UserRole]
+
+
+export const DisputeStatus = {
+  OPEN: 'OPEN',
+  UNDER_REVIEW: 'UNDER_REVIEW',
+  RESOLVED: 'RESOLVED',
+  REJECTED: 'REJECTED'
+} as const
+
+export type DisputeStatus = (typeof DisputeStatus)[keyof typeof DisputeStatus]
 
 
 export const MeterStatus = {

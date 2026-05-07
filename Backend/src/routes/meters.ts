@@ -1,9 +1,9 @@
 import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
-import { requireAuth } from "../middleware/auth.js";
+import { requireAuth, requireRole } from "../middleware/auth.js";
 import { validate } from "../middleware/validate.js";
-import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from "../lib/errors.js";
+import { ForbiddenError, NotFoundError, ValidationError } from "../lib/errors.js";
 import { toPaginatedResponse, toPagination } from "../lib/response.js";
 import { addMonths, format } from "date-fns";
 import type { Prisma } from "../generated/prisma/client.js";
@@ -21,24 +21,60 @@ metersRouter.get("/", async (req, res) => {
   const statusRaw = typeof req.query.status === "string" ? req.query.status : undefined;
   const status = statusRaw && isMeterStatus(statusRaw) ? statusRaw : undefined;
   const search = typeof req.query.search === "string" ? req.query.search : undefined;
-  const userId =
-    req.user!.role === "ADMIN" && typeof req.query.userId === "string"
-      ? req.query.userId
-      : req.user!.id;
 
-  const where: Prisma.MeterWhereInput = {
-    userId,
-    ...(status ? { status } : {}),
-    ...(search
-      ? {
-          OR: [
-            { meterSerial: { contains: search, mode: "insensitive" as const } },
-            { meterLabel: { contains: search, mode: "insensitive" as const } },
-            { location: { contains: search, mode: "insensitive" as const } },
-          ],
-        }
-      : {}),
-  };
+  let where: Prisma.MeterWhereInput;
+
+  if (req.user!.role === "ADMIN") {
+    const userId = typeof req.query.userId === "string" ? req.query.userId : undefined;
+    where = {
+      ...(userId ? { userId } : {}),
+      ...(status ? { status } : {}),
+      ...(search
+        ? {
+            OR: [
+              { meterSerial: { contains: search, mode: "insensitive" as const } },
+              { meterLabel: { contains: search, mode: "insensitive" as const } },
+              { location: { contains: search, mode: "insensitive" as const } },
+            ],
+          }
+        : {}),
+    };
+  } else if (req.user!.role === "FIELD_STAFF") {
+    // Staff sees only their assigned meters
+    const assignments = await prisma.staffMeterAssignment.findMany({
+      where: { staffId: req.user!.id, isActive: true },
+      select: { meterId: true },
+    });
+    const assignedIds = assignments.map((a) => a.meterId);
+    where = {
+      id: { in: assignedIds },
+      ...(status ? { status } : {}),
+      ...(search
+        ? {
+            OR: [
+              { meterSerial: { contains: search, mode: "insensitive" as const } },
+              { meterLabel: { contains: search, mode: "insensitive" as const } },
+              { location: { contains: search, mode: "insensitive" as const } },
+            ],
+          }
+        : {}),
+    };
+  } else {
+    // CONSUMER sees only their own meters
+    where = {
+      userId: req.user!.id,
+      ...(status ? { status } : {}),
+      ...(search
+        ? {
+            OR: [
+              { meterSerial: { contains: search, mode: "insensitive" as const } },
+              { meterLabel: { contains: search, mode: "insensitive" as const } },
+              { location: { contains: search, mode: "insensitive" as const } },
+            ],
+          }
+        : {}),
+    };
+  }
 
   const [total, rows] = await Promise.all([
     prisma.meter.count({ where }),
@@ -48,61 +84,37 @@ metersRouter.get("/", async (req, res) => {
   res.json(toPaginatedResponse({ data: rows.map(toMeterDto), page, limit, total }));
 });
 
-const createSchema = z.object({
-  body: z.object({
-    meterSerial: z.string().min(4).max(20).regex(/^[A-Za-z0-9-]+$/),
-    meterLabel: z.string().optional(),
-    meterType: z.enum(["analog", "digital"]),
-    installationDate: z.string().optional(),
-    location: z.string().optional(),
-    maxDigits: z.number().int().min(4).max(7),
-    initialReading: z.number().nonnegative().optional(),
-  }),
-});
+metersRouter.get("/:id/assignments", async (req, res) => {
+  const id = req.params.id as string;
+  const meter = await prisma.meter.findUnique({ where: { id } });
+  if (!meter) throw new NotFoundError("Meter not found");
+  if (req.user!.role !== "ADMIN" && meter.userId !== req.user!.id) throw new ForbiddenError();
 
-metersRouter.post("/", validate(createSchema), async (req, res) => {
-  const serial = req.body.meterSerial.toUpperCase();
-  const count = await prisma.meter.count({ where: { userId: req.user!.id } });
-  if (count >= 10) throw new ValidationError("Maximum 10 meters allowed per account");
-
-  const existing = await prisma.meter.findUnique({ where: { meterSerial: serial } });
-  if (existing) throw new ConflictError("This serial number is already registered");
-
-  const meter = await prisma.meter.create({
-    data: {
-      userId: req.user!.id,
-      meterSerial: serial,
-      meterLabel: req.body.meterLabel?.trim() || null,
-      meterType: req.body.meterType === "analog" ? "ANALOG" : "DIGITAL",
-      installationDate: req.body.installationDate ? new Date(req.body.installationDate) : null,
-      location: req.body.location?.trim() || null,
-      status: "PENDING",
-      maxDigits: req.body.maxDigits,
-      initialReading: req.body.initialReading ?? null,
-      lastReadingValue: req.body.initialReading ?? null,
-      lastReadingDate: req.body.initialReading ? new Date() : null,
-    },
+  const assignments = await prisma.staffMeterAssignment.findMany({
+    where: { meterId: id, isActive: true },
+    include: { staff: { select: { id: true, firstName: true, lastName: true, email: true } } },
   });
 
-  // Notify user that their meter is pending approval
-  await prisma.notification.create({
-    data: {
-      userId: req.user!.id,
-      type: "SYSTEM_ALERT",
-      title: "Meter Registration Submitted",
-      message: `Your meter ${serial} has been submitted for approval. You will be notified once an admin reviews it.`,
-      link: "/meters",
-    },
-  });
-
-  res.status(201).json({ meter: toMeterDto(meter) });
+  res.json({ data: assignments });
 });
 
 metersRouter.get("/:id", async (req, res) => {
   const id = req.params.id as string;
   const meter = await prisma.meter.findUnique({ where: { id } });
   if (!meter) throw new NotFoundError("Meter not found");
-  if (req.user!.role !== "ADMIN" && meter.userId !== req.user!.id) throw new ForbiddenError();
+
+  if (req.user!.role === "ADMIN") {
+    return res.json({ meter: toMeterDto(meter) });
+  }
+  if (req.user!.role === "FIELD_STAFF") {
+    const assignment = await prisma.staffMeterAssignment.findUnique({
+      where: { staffId_meterId: { staffId: req.user!.id, meterId: id } },
+    });
+    if (!assignment?.isActive) throw new ForbiddenError();
+    return res.json({ meter: toMeterDto(meter) });
+  }
+  // CONSUMER
+  if (meter.userId !== req.user!.id) throw new ForbiddenError();
   res.json({ meter: toMeterDto(meter) });
 });
 
@@ -116,11 +128,10 @@ const patchSchema = z.object({
   }),
 });
 
-metersRouter.patch("/:id", validate(patchSchema), async (req, res) => {
+metersRouter.patch("/:id", requireRole("ADMIN"), validate(patchSchema), async (req, res) => {
   const id = req.params.id as string;
   const meter = await prisma.meter.findUnique({ where: { id } });
   if (!meter) throw new NotFoundError("Meter not found");
-  if (req.user!.role !== "ADMIN" && meter.userId !== req.user!.id) throw new ForbiddenError();
 
   const updated = await prisma.meter.update({
     where: { id: meter.id },
@@ -135,20 +146,32 @@ metersRouter.patch("/:id", validate(patchSchema), async (req, res) => {
   res.json({ meter: toMeterDto(updated) });
 });
 
-metersRouter.delete("/:id", async (req, res) => {
+metersRouter.delete("/:id", requireRole("ADMIN"), async (req, res) => {
   const id = req.params.id as string;
   const meter = await prisma.meter.findUnique({ where: { id } });
   if (!meter) throw new NotFoundError("Meter not found");
-  if (req.user!.role !== "ADMIN" && meter.userId !== req.user!.id) throw new ForbiddenError();
-  await prisma.meter.delete({ where: { id: meter.id } });
+  await prisma.meter.update({ where: { id }, data: { status: "INACTIVE" } });
   res.status(204).end();
 });
+
+async function canAccessMeter(userId: string, role: string, meterId: string): Promise<boolean> {
+  if (role === "ADMIN") return true;
+  if (role === "FIELD_STAFF") {
+    const a = await prisma.staffMeterAssignment.findUnique({
+      where: { staffId_meterId: { staffId: userId, meterId } },
+    });
+    return !!a?.isActive;
+  }
+  // CONSUMER
+  const m = await prisma.meter.findUnique({ where: { id: meterId }, select: { userId: true } });
+  return m?.userId === userId;
+}
 
 metersRouter.get("/:id/readings", async (req, res) => {
   const id = req.params.id as string;
   const meter = await prisma.meter.findUnique({ where: { id } });
   if (!meter) throw new NotFoundError("Meter not found");
-  if (req.user!.role !== "ADMIN" && meter.userId !== req.user!.id) throw new ForbiddenError();
+  if (!await canAccessMeter(req.user!.id, req.user!.role, id)) throw new ForbiddenError();
 
   const { page, limit, skip } = toPagination(req.query);
   const [total, rows] = await Promise.all([
@@ -167,7 +190,7 @@ metersRouter.get("/:id/stats", async (req, res) => {
   const id = req.params.id as string;
   const meter = await prisma.meter.findUnique({ where: { id } });
   if (!meter) throw new NotFoundError("Meter not found");
-  if (req.user!.role !== "ADMIN" && meter.userId !== req.user!.id) throw new ForbiddenError();
+  if (!await canAccessMeter(req.user!.id, req.user!.role, id)) throw new ForbiddenError();
 
   const period = typeof req.query.period === "string" ? req.query.period : "12";
   if (!["3", "6", "12"].includes(period)) throw new ValidationError("Invalid period");

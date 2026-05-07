@@ -1,8 +1,20 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router';
-import { Zap, Eye, EyeOff, Loader2, AlertCircle, Clock } from 'lucide-react';
+import { Zap, Eye, EyeOff, Loader2, AlertCircle, Clock, ShieldCheck, HardHat, User } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { toast } from 'sonner';
+
+const DEMO_ACCOUNTS = [
+  { label: 'Consumer', icon: User, email: 'user@test.com', password: 'User@123', color: 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50' },
+  { label: 'Field Staff', icon: HardHat, email: 'staff@test.com', password: 'Staff@123', color: 'bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-50' },
+  { label: 'Admin', icon: ShieldCheck, email: 'admin@smartmeter.com', password: 'Admin@123', color: 'bg-blue-600 text-white hover:bg-blue-700' },
+] as const;
+
+const ROLE_REDIRECT: Record<string, string> = {
+  ADMIN: '/admin',
+  FIELD_STAFF: '/staff',
+  CONSUMER: '/dashboard',
+};
 
 export default function Login() {
   const navigate = useNavigate();
@@ -24,15 +36,10 @@ export default function Login() {
     setLoading(false);
     if (result.success) {
       toast.success('Welcome back!');
-      navigate('/dashboard');
+      navigate(ROLE_REDIRECT[result.role ?? ''] ?? '/dashboard');
     } else {
       setError(result.message);
     }
-  };
-
-  const fillDemo = (type: 'admin' | 'user') => {
-    if (type === 'admin') setForm({ email: 'admin@smartmeter.com', password: 'Admin@123' });
-    else setForm({ email: 'user@test.com', password: 'User@123' });
   };
 
   return (
@@ -52,15 +59,24 @@ export default function Login() {
         {/* Card */}
         <div className="bg-white rounded-2xl p-8 shadow-2xl">
           {/* Demo credentials */}
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 mb-6">
-            <p className="text-blue-700 text-xs font-medium mb-2">Quick demo login:</p>
-            <div className="flex gap-2">
-              <button onClick={() => fillDemo('user')} className="flex-1 bg-white border border-blue-200 rounded-lg px-2 py-1.5 text-xs text-blue-700 hover:bg-blue-50 transition-colors">Consumer</button>
-              <button onClick={() => fillDemo('admin')} className="flex-1 bg-blue-600 text-white rounded-lg px-2 py-1.5 text-xs hover:bg-blue-700 transition-colors">Admin</button>
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 mb-6">
+            <p className="text-slate-500 text-xs font-medium mb-2.5">Quick demo login:</p>
+            <div className="grid grid-cols-3 gap-2">
+              {DEMO_ACCOUNTS.map(a => (
+                <button
+                  key={a.label}
+                  type="button"
+                  onClick={() => setForm({ email: a.email, password: a.password })}
+                  className={`flex flex-col items-center gap-1 px-2 py-2 rounded-lg text-xs font-medium transition-colors ${a.color}`}
+                >
+                  <a.icon size={15} />
+                  {a.label}
+                </button>
+              ))}
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={e => void handleSubmit(e)} className="space-y-5">
             {error && (
               error.toLowerCase().includes('pending') ? (
                 <div className="flex items-start gap-2 text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-3 text-sm">
@@ -125,6 +141,20 @@ export default function Login() {
             Don't have an account?{' '}
             <Link to="/register" className="text-blue-600 hover:text-blue-700 font-medium">Create one</Link>
           </p>
+        </div>
+
+        {/* Role legend */}
+        <div className="mt-6 grid grid-cols-3 gap-3 text-center">
+          {[
+            { role: 'Meter Owner', desc: 'View bills & usage', color: 'text-slate-300' },
+            { role: 'Field Staff', desc: 'Submit readings', color: 'text-emerald-400' },
+            { role: 'Admin', desc: 'Full control panel', color: 'text-blue-400' },
+          ].map(r => (
+            <div key={r.role}>
+              <p className={`text-xs font-semibold ${r.color}`}>{r.role}</p>
+              <p className="text-slate-500 text-xs mt-0.5">{r.desc}</p>
+            </div>
+          ))}
         </div>
       </div>
     </div>

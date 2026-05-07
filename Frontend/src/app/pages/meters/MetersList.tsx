@@ -1,10 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import {
-  Plus, Gauge,
-} from 'lucide-react';
+import { Gauge } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { toast } from 'sonner';
 import { MeterCard } from './MeterCard';
 import { useUserMeters } from '../../hooks/useUserData';
 import { SearchInput } from '../../components/common/SearchInput';
@@ -13,10 +10,12 @@ import { PageHeader } from '../../components/common/PageHeader';
 
 export default function MetersList() {
   const navigate = useNavigate();
-  const { deleteMeter } = useApp();
+  const { currentUser } = useApp();
   const allUserMeters = useUserMeters();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
+
+  const isAdmin = currentUser?.role === 'ADMIN';
 
   const userMeters = allUserMeters
     .filter(m => statusFilter === 'ALL' || m.status === statusFilter)
@@ -26,31 +25,16 @@ export default function MetersList() {
       (m.location ?? '').toLowerCase().includes(search.toLowerCase())
     );
 
-  const handleDelete = async (id: string, label?: string) => {
-    if (confirm(`Delete meter "${label ?? id}"? This action cannot be undone.`)) {
-      try {
-        await deleteMeter(id);
-        toast.success('Meter deleted successfully');
-      } catch (error) {
-        toast.error(error instanceof Error ? error.message : 'Failed to delete meter.');
-      }
-    }
-  };
-
   return (
     <div className="space-y-6">
-      {/* Header */}
       <PageHeader
         title="My Meters"
-        subtitle={`${allUserMeters.length} meters registered`}
-        actions={(
-          <button
-            onClick={() => navigate('/meters/add')}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2 transition-colors w-fit"
-          >
-            <Plus size={16} /> Add New Meter
+        subtitle={`${allUserMeters.length} meter${allUserMeters.length !== 1 ? 's' : ''} assigned to your account`}
+        actions={isAdmin ? (
+          <button onClick={() => navigate('/admin/meters')} className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-medium transition-colors">
+            Manage All Meters
           </button>
-        )}
+        ) : undefined}
       />
 
       {/* Summary row */}
@@ -100,8 +84,7 @@ export default function MetersList() {
         <EmptyState
           icon={Gauge}
           title="No meters found"
-          description={search ? 'Try adjusting your search.' : "You haven't added any meters yet."}
-          action={!search ? { label: 'Add Your First Meter', onClick: () => navigate('/meters/add') } : undefined}
+          description={search ? 'Try adjusting your search.' : 'No meters assigned to your account yet. Contact your admin.'}
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
@@ -109,9 +92,7 @@ export default function MetersList() {
             <MeterCard
               key={meter.id}
               meter={meter}
-              onUpload={() => navigate('/readings/upload')}
               onView={() => navigate(`/meters/${meter.id}`)}
-              onDelete={() => handleDelete(meter.id, meter.meterLabel)}
             />
           ))}
         </div>

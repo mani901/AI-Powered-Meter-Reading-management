@@ -1,7 +1,7 @@
 import "dotenv/config";
 import bcrypt from "bcrypt";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { PrismaClient, UserRole, MeterStatus, MeterType, ReadingSource, ReadingStatus, BillStatus, NotificationType } from "../src/generated/prisma/client.js";
+import { PrismaClient, UserRole, MeterStatus, MeterType, ReadingSource, ReadingStatus, BillStatus, NotificationType, DisputeStatus } from "../src/generated/prisma/client.js";
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
 const prisma = new PrismaClient({ adapter });
@@ -13,6 +13,8 @@ async function main() {
   await prisma.auditLog.deleteMany();
   await prisma.refreshToken.deleteMany();
   await prisma.notification.deleteMany();
+  await prisma.dispute.deleteMany();
+  await prisma.staffMeterAssignment.deleteMany();
   await prisma.bill.deleteMany();
   await prisma.reading.deleteMany();
   await prisma.meter.deleteMany();
@@ -22,6 +24,7 @@ async function main() {
 
   const adminPass = await bcrypt.hash("Admin@123", rounds);
   const userPass = await bcrypt.hash("User@123", rounds);
+  const staffPass = await bcrypt.hash("Staff@123", rounds);
 
   const admin = await prisma.user.create({
     data: {
@@ -55,6 +58,24 @@ async function main() {
       isPendingApproval: false,
       isEmailVerified: true,
       lastLoginAt: new Date("2026-02-20T19:15:00Z"),
+      settings: { create: {} },
+    },
+  });
+
+  const staff = await prisma.user.create({
+    data: {
+      email: "staff@test.com",
+      passwordHash: staffPass,
+      firstName: "Bilal",
+      lastName: "Hussain",
+      phone: "+92-333-5551234",
+      address: "Flat 3, Block 9, Gulshan-e-Iqbal",
+      city: "Karachi",
+      role: UserRole.FIELD_STAFF,
+      isActive: true,
+      isPendingApproval: false,
+      isEmailVerified: true,
+      lastLoginAt: new Date("2026-02-21T07:00:00Z"),
       settings: { create: {} },
     },
   });
@@ -120,20 +141,29 @@ async function main() {
   });
   void tariffs;
 
+  // Assign staff to meters 1 and 2
+  await prisma.staffMeterAssignment.createMany({
+    data: [
+      { staffId: staff.id, meterId: meter1.id, isActive: true },
+      { staffId: staff.id, meterId: meter2.id, isActive: true },
+    ],
+  });
+
   await prisma.reading.createMany({
     data: [
-      { userId: consumer.id, meterId: meter1.id, readingValue: 45321, previousReading: 45100, consumption: 221, readingDate: new Date("2026-02-15"), source: ReadingSource.AI_EXTRACTED, confidenceScore: 0.94, status: ReadingStatus.ACCEPTED, isAnomalous: false },
-      { userId: consumer.id, meterId: meter1.id, readingValue: 45100, previousReading: 44843, consumption: 257, readingDate: new Date("2026-01-14"), source: ReadingSource.AI_EXTRACTED, confidenceScore: 0.88, status: ReadingStatus.ACCEPTED, isAnomalous: false },
-      { userId: consumer.id, meterId: meter1.id, readingValue: 44843, previousReading: 44543, consumption: 300, readingDate: new Date("2025-12-12"), source: ReadingSource.MANUAL, status: ReadingStatus.ACCEPTED, isAnomalous: false },
-      { userId: consumer.id, meterId: meter1.id, readingValue: 44543, previousReading: 44093, consumption: 450, readingDate: new Date("2025-11-11"), source: ReadingSource.AI_EXTRACTED, confidenceScore: 0.62, status: ReadingStatus.FLAGGED, isAnomalous: true, anomalyReason: "Unusually high consumption (450 kWh vs avg 280 kWh)" },
-      { userId: consumer.id, meterId: meter1.id, readingValue: 44093, previousReading: 43713, consumption: 380, readingDate: new Date("2025-10-10"), source: ReadingSource.AI_EXTRACTED, confidenceScore: 0.91, status: ReadingStatus.ACCEPTED, isAnomalous: false },
+      // Staff-submitted readings (userId = staff)
+      { userId: staff.id, meterId: meter1.id, readingValue: 45321, previousReading: 45100, consumption: 221, readingDate: new Date("2026-02-15"), source: ReadingSource.AI_EXTRACTED, confidenceScore: 0.94, status: ReadingStatus.ACCEPTED, isAnomalous: false },
+      { userId: staff.id, meterId: meter1.id, readingValue: 45100, previousReading: 44843, consumption: 257, readingDate: new Date("2026-01-14"), source: ReadingSource.AI_EXTRACTED, confidenceScore: 0.88, status: ReadingStatus.ACCEPTED, isAnomalous: false },
+      { userId: staff.id, meterId: meter1.id, readingValue: 44843, previousReading: 44543, consumption: 300, readingDate: new Date("2025-12-12"), source: ReadingSource.MANUAL, status: ReadingStatus.ACCEPTED, isAnomalous: false },
+      { userId: staff.id, meterId: meter1.id, readingValue: 44543, previousReading: 44093, consumption: 450, readingDate: new Date("2025-11-11"), source: ReadingSource.AI_EXTRACTED, confidenceScore: 0.62, status: ReadingStatus.FLAGGED, isAnomalous: true, anomalyReason: "Unusually high consumption (450 kWh vs avg 280 kWh)" },
+      { userId: staff.id, meterId: meter1.id, readingValue: 44093, previousReading: 43713, consumption: 380, readingDate: new Date("2025-10-10"), source: ReadingSource.AI_EXTRACTED, confidenceScore: 0.91, status: ReadingStatus.ACCEPTED, isAnomalous: false },
 
-      { userId: consumer.id, meterId: meter2.id, readingValue: 12450, previousReading: 12180, consumption: 270, readingDate: new Date("2026-02-10"), source: ReadingSource.AI_EXTRACTED, confidenceScore: 0.96, status: ReadingStatus.ACCEPTED, isAnomalous: false },
-      { userId: consumer.id, meterId: meter2.id, readingValue: 12180, previousReading: 11940, consumption: 240, readingDate: new Date("2026-01-08"), source: ReadingSource.AI_EXTRACTED, confidenceScore: 0.93, status: ReadingStatus.ACCEPTED, isAnomalous: false },
-      { userId: consumer.id, meterId: meter2.id, readingValue: 11940, previousReading: 11660, consumption: 280, readingDate: new Date("2025-12-05"), source: ReadingSource.MANUAL, status: ReadingStatus.ACCEPTED, isAnomalous: false },
-      { userId: consumer.id, meterId: meter2.id, readingValue: 11660, previousReading: 11310, consumption: 350, readingDate: new Date("2025-11-04"), source: ReadingSource.AI_EXTRACTED, confidenceScore: 0.58, status: ReadingStatus.PENDING_REVIEW, isAnomalous: false },
+      { userId: staff.id, meterId: meter2.id, readingValue: 12450, previousReading: 12180, consumption: 270, readingDate: new Date("2026-02-10"), source: ReadingSource.AI_EXTRACTED, confidenceScore: 0.96, status: ReadingStatus.ACCEPTED, isAnomalous: false },
+      { userId: staff.id, meterId: meter2.id, readingValue: 12180, previousReading: 11940, consumption: 240, readingDate: new Date("2026-01-08"), source: ReadingSource.AI_EXTRACTED, confidenceScore: 0.93, status: ReadingStatus.ACCEPTED, isAnomalous: false },
+      { userId: staff.id, meterId: meter2.id, readingValue: 11940, previousReading: 11660, consumption: 280, readingDate: new Date("2025-12-05"), source: ReadingSource.MANUAL, status: ReadingStatus.ACCEPTED, isAnomalous: false },
+      { userId: staff.id, meterId: meter2.id, readingValue: 11660, previousReading: 11310, consumption: 350, readingDate: new Date("2025-11-04"), source: ReadingSource.AI_EXTRACTED, confidenceScore: 0.58, status: ReadingStatus.PENDING_REVIEW, isAnomalous: false },
 
-      { userId: consumer.id, meterId: meter3.id, readingValue: 3210, previousReading: 3160, consumption: 50, readingDate: new Date("2025-11-30"), source: ReadingSource.MANUAL, status: ReadingStatus.ACCEPTED, isAnomalous: false },
+      { userId: staff.id, meterId: meter3.id, readingValue: 3210, previousReading: 3160, consumption: 50, readingDate: new Date("2025-11-30"), source: ReadingSource.MANUAL, status: ReadingStatus.ACCEPTED, isAnomalous: false },
     ],
   });
 
@@ -143,6 +173,20 @@ async function main() {
       { userId: consumer.id, meterId: meter1.id, billingMonth: "2026-01", previousReading: 44843, currentReading: 45100, unitsConsumed: 257, energyCharges: 2952, fixedCharges: 150, fuelAdjustment: 830.11, taxAmount: 666.37, totalAmount: 4598.48, status: BillStatus.CONFIRMED, dueDate: new Date("2026-02-15") },
       { userId: consumer.id, meterId: meter2.id, billingMonth: "2026-02", previousReading: 12180, currentReading: 12450, unitsConsumed: 270, energyCharges: 6615, fixedCharges: 300, fuelAdjustment: 872.1, taxAmount: 1325.25, totalAmount: 9112.35, status: BillStatus.ESTIMATED, dueDate: new Date("2026-03-15") },
       { userId: consumer.id, meterId: meter2.id, billingMonth: "2026-01", previousReading: 11940, currentReading: 12180, unitsConsumed: 240, energyCharges: 5880, fixedCharges: 300, fuelAdjustment: 775.2, taxAmount: 1175.38, totalAmount: 8130.58, status: BillStatus.OVERDUE, dueDate: new Date("2026-02-15") },
+    ],
+  });
+
+  await prisma.dispute.createMany({
+    data: [
+      {
+        userId: consumer.id,
+        meterId: meter1.id,
+        subject: "Wrong reading recorded for November",
+        description: "The November reading shows 450 kWh which is much higher than my usual consumption of around 280 kWh. I was on vacation that month and the house was empty. Please re-check.",
+        status: DisputeStatus.UNDER_REVIEW,
+        adminNotes: "Flagged reading under investigation. Field staff has been asked to re-visit.",
+        createdAt: new Date("2025-11-13T10:00:00Z"),
+      },
     ],
   });
 

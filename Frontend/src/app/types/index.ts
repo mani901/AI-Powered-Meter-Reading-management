@@ -1,4 +1,5 @@
-export type UserRole = 'ADMIN' | 'CONSUMER';
+export type UserRole = 'ADMIN' | 'FIELD_STAFF' | 'CONSUMER';
+export type DisputeStatus = 'OPEN' | 'UNDER_REVIEW' | 'RESOLVED' | 'REJECTED';
 export type MeterStatus = 'PENDING' | 'ACTIVE' | 'INACTIVE' | 'FAULTY' | 'REJECTED';
 export type ReadingSource = 'AI_EXTRACTED' | 'MANUAL' | 'AI_CORRECTED';
 export type ReadingStatus = 'ACCEPTED' | 'FLAGGED' | 'REJECTED' | 'PENDING_REVIEW';
@@ -128,5 +129,52 @@ export interface AuditLog {
   details?: string;
   ipAddress?: string;
   createdAt: string;
+}
+
+export interface StaffMeterAssignment {
+  assignmentId: string;
+  assignedAt: string;
+  meter: {
+    id: string;
+    meterSerial: string;
+    meterLabel?: string;
+    meterType: 'analog' | 'digital';
+    location?: string;
+    status: MeterStatus;
+    lastReadingValue?: number;
+    lastReadingDate?: string;
+    owner?: { id: string; firstName: string; lastName: string; email: string; phone?: string };
+  };
+}
+
+export interface Dispute {
+  id: string;
+  userId: string;
+  meterId: string;
+  readingId?: string;
+  subject: string;
+  description: string;
+  status: DisputeStatus;
+  adminNotes?: string;
+  resolvedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  meter?: { id: string; meterSerial: string; meterLabel?: string };
+  user?: { id: string; firstName: string; lastName: string; email: string };
+}
+
+export interface StaffMember {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  phone?: string;
+  city?: string;
+  role: 'FIELD_STAFF';
+  isActive: boolean;
+  lastLoginAt?: string;
+  createdAt: string;
+  assignedMeters: number;
+  totalReadings: number;
 }
 

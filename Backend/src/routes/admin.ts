@@ -4,8 +4,9 @@ import { prisma } from "../lib/prisma.js";
 import { requireAuth, requireRole } from "../middleware/auth.js";
 import { validate } from "../middleware/validate.js";
 import { toPaginatedResponse, toPagination } from "../lib/response.js";
-import { NotFoundError } from "../lib/errors.js";
-import type { Prisma, UserRole } from "../generated/prisma/client.js";
+import { ConflictError, NotFoundError } from "../lib/errors.js";
+import { createUser } from "../services/auth/auth.service.js";
+import type { Prisma, UserRole, DisputeStatus } from "../generated/prisma/client.js";
 
 export const adminRouter = Router();
 adminRouter.use(requireAuth);
@@ -83,7 +84,7 @@ adminRouter.patch("/users/:id/status", validate(statusSchema), async (req, res) 
 
 const roleSchema = z.object({
   params: z.object({ id: z.string() }),
-  body: z.object({ role: z.enum(["ADMIN", "CONSUMER"]) }),
+  body: z.object({ role: z.enum(["ADMIN", "FIELD_STAFF", "CONSUMER"]) }),
 });
 
 adminRouter.patch("/users/:id/role", validate(roleSchema), async (req, res) => {
@@ -287,5 +288,297 @@ adminRouter.get("/audit-logs", async (req, res) => {
   ]);
 
   res.json(toPaginatedResponse({ data: rows, page, limit, total }));
+});
+
+// ── Admin Create User ────────────────────────────────────────────────────────
+
+const createUserSchema = z.object({
+  body: z.object({
+    email: z.string().email(),
+    password: z.string().min(8),
+    firstName: z.string().min(1),
+    lastName: z.string().min(1),
+    phone: z.string().optional(),
+    city: z.string().optional(),
+    role: z.enum(["FIELD_STAFF", "CONSUMER"]),
+  }),
+});
+
+adminRouter.post("/users/create", validate(createUserSchema), async (req, res) => {
+  const user = await createUser(req.body);
+  res.status(201).json({ user });
+});
+
+// ── Staff Management ─────────────────────────────────────────────────────────
+
+adminRouter.get("/staff", async (req, res) => {
+  const { page, limit, skip } = toPagination(req.query);
+  const search = typeof req.query.search === "string" ? req.query.search : undefined;
+
+  const where: Prisma.UserWhereInput = {
+    role: "FIELD_STAFF",
+    ...(search
+      ? {
+          OR: [
+            { email: { contains: search, mode: "insensitive" } },
+            { firstName: { contains: search, mode: "insensitive" } },
+            { lastName: { contains: search, mode: "insensitive" } },
+          ],
+        }
+      : {}),
+  };
+
+  const [total, rows] = await Promise.all([
+    prisma.user.count({ where }),
+    prisma.user.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip,
+      take: limit,
+      include: {
+        _count: { select: { staffAssignments: true, readings: true } },
+      },
+    }),
+  ]);
+
+  res.json(
+    toPaginatedResponse({
+      data: rows.map((u) => ({
+        id: u.id,
+        email: u.email,
+        firstName: u.firstName,
+        lastName: u.lastName,
+        phone: u.phone ?? undefined,
+        city: u.city ?? undefined,
+        role: u.role,
+        isActive: u.isActive,
+        lastLoginAt: u.lastLoginAt?.toISOString(),
+        createdAt: u.createdAt.toISOString(),
+        assignedMeters: u._count.staffAssignments,
+        totalReadings: u._count.readings,
+      })),
+      page,
+      limit,
+      total,
+    }),
+  );
+});
+
+adminRouter.get("/staff/:id/meters", async (req, res) => {
+  const staffId = req.params.id as string;
+  const staff = await prisma.user.findUnique({ where: { id: staffId, role: "FIELD_STAFF" } });
+  if (!staff) throw new NotFoundError("Staff member not found");
+
+  const assignments = await prisma.staffMeterAssignment.findMany({
+    where: { staffId, isActive: true },
+    include: {
+      meter: { include: { user: { select: { id: true, firstName: true, lastName: true, email: true } } } },
+    },
+    orderBy: { assignedAt: "desc" },
+  });
+
+  res.json({
+    data: assignments.map((a) => ({
+      assignmentId: a.id,
+      assignedAt: a.assignedAt.toISOString(),
+      meter: {
+        id: a.meter.id,
+        meterSerial: a.meter.meterSerial,
+        meterLabel: a.meter.meterLabel ?? undefined,
+        location: a.meter.location ?? undefined,
+        status: a.meter.status,
+        lastReadingValue: a.meter.lastReadingValue !== null ? Number(a.meter.lastReadingValue) : undefined,
+        lastReadingDate: a.meter.lastReadingDate?.toISOString().slice(0, 10),
+        owner: a.meter.user,
+      },
+    })),
+  });
+});
+
+// ── Meter Assignment ─────────────────────────────────────────────────────────
+
+const assignOwnerSchema = z.object({
+  params: z.object({ id: z.string() }),
+  body: z.object({ consumerId: z.string() }),
+});
+
+adminRouter.post("/meters/:id/assign-owner", validate(assignOwnerSchema), async (req, res) => {
+  const meterId = req.params.id as string;
+  const meter = await prisma.meter.findUnique({ where: { id: meterId } });
+  if (!meter) throw new NotFoundError("Meter not found");
+
+  const consumer = await prisma.user.findUnique({ where: { id: req.body.consumerId } });
+  if (!consumer || consumer.role !== "CONSUMER") throw new NotFoundError("Consumer not found");
+
+  const updated = await prisma.meter.update({
+    where: { id: meterId },
+    data: { userId: req.body.consumerId },
+  });
+
+  res.json({ meter: { id: updated.id, meterSerial: updated.meterSerial, userId: updated.userId } });
+});
+
+const assignStaffSchema = z.object({
+  params: z.object({ id: z.string() }),
+  body: z.object({ staffId: z.string() }),
+});
+
+adminRouter.post("/meters/:id/assign-staff", validate(assignStaffSchema), async (req, res) => {
+  const meterId = req.params.id as string;
+  const meter = await prisma.meter.findUnique({ where: { id: meterId } });
+  if (!meter) throw new NotFoundError("Meter not found");
+
+  const staff = await prisma.user.findUnique({ where: { id: req.body.staffId } });
+  if (!staff || staff.role !== "FIELD_STAFF") throw new NotFoundError("Field staff member not found");
+
+  const existing = await prisma.staffMeterAssignment.findUnique({
+    where: { staffId_meterId: { staffId: req.body.staffId, meterId } },
+  });
+
+  if (existing) {
+    if (existing.isActive) throw new ConflictError("Staff member is already assigned to this meter");
+    const updated = await prisma.staffMeterAssignment.update({
+      where: { id: existing.id },
+      data: { isActive: true },
+    });
+    return res.json({ assignment: updated });
+  }
+
+  const assignment = await prisma.staffMeterAssignment.create({
+    data: { staffId: req.body.staffId, meterId },
+  });
+
+  res.status(201).json({ assignment });
+});
+
+const unassignStaffSchema = z.object({
+  params: z.object({ id: z.string(), staffId: z.string() }),
+});
+
+adminRouter.delete("/meters/:id/unassign-staff/:staffId", validate(unassignStaffSchema), async (req, res) => {
+  const meterId = req.params.id as string;
+  const staffId = req.params.staffId as string;
+
+  const assignment = await prisma.staffMeterAssignment.findUnique({
+    where: { staffId_meterId: { staffId, meterId } },
+  });
+  if (!assignment) throw new NotFoundError("Assignment not found");
+
+  await prisma.staffMeterAssignment.update({
+    where: { id: assignment.id },
+    data: { isActive: false },
+  });
+
+  res.status(204).end();
+});
+
+// ── Meter Management (admin creates/edits/deactivates) ───────────────────────
+
+const adminCreateMeterSchema = z.object({
+  body: z.object({
+    meterSerial: z.string().min(4).max(20).regex(/^[A-Za-z0-9-]+$/),
+    meterLabel: z.string().optional(),
+    meterType: z.enum(["analog", "digital"]),
+    installationDate: z.string().optional(),
+    location: z.string().optional(),
+    maxDigits: z.number().int().min(4).max(7).default(5),
+    initialReading: z.number().nonnegative().optional(),
+    consumerId: z.string().optional(),
+  }),
+});
+
+adminRouter.post("/meters", validate(adminCreateMeterSchema), async (req, res) => {
+  const serial = req.body.meterSerial.toUpperCase();
+  const existing = await prisma.meter.findUnique({ where: { meterSerial: serial } });
+  if (existing) throw new ConflictError("This serial number is already registered");
+
+  let ownerId = req.user!.id;
+  if (req.body.consumerId) {
+    const consumer = await prisma.user.findUnique({ where: { id: req.body.consumerId } });
+    if (!consumer || consumer.role !== "CONSUMER") throw new NotFoundError("Consumer not found");
+    ownerId = req.body.consumerId;
+  }
+
+  const meter = await prisma.meter.create({
+    data: {
+      userId: ownerId,
+      meterSerial: serial,
+      meterLabel: req.body.meterLabel?.trim() || null,
+      meterType: req.body.meterType === "analog" ? "ANALOG" : "DIGITAL",
+      installationDate: req.body.installationDate ? new Date(req.body.installationDate) : null,
+      location: req.body.location?.trim() || null,
+      status: "ACTIVE",
+      maxDigits: req.body.maxDigits ?? 5,
+      initialReading: req.body.initialReading ?? null,
+      lastReadingValue: req.body.initialReading ?? null,
+      lastReadingDate: req.body.initialReading ? new Date() : null,
+    },
+  });
+
+  if (req.body.consumerId) {
+    await prisma.notification.create({
+      data: {
+        userId: req.body.consumerId,
+        type: "METER_APPROVED",
+        title: "Meter Assigned",
+        message: `A meter (${serial}) has been assigned to your account by the administrator.`,
+        link: "/meters",
+      },
+    });
+  }
+
+  res.status(201).json({ meter });
+});
+
+// ── Disputes Management ──────────────────────────────────────────────────────
+
+adminRouter.get("/disputes", async (req, res) => {
+  const { page, limit, skip } = toPagination(req.query);
+  const status = typeof req.query.status === "string" ? req.query.status : undefined;
+
+  const where: Prisma.DisputeWhereInput = {
+    ...(status && status !== "ALL" ? { status: status as DisputeStatus } : {}),
+  };
+
+  const [total, rows] = await Promise.all([
+    prisma.dispute.count({ where }),
+    prisma.dispute.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip,
+      take: limit,
+      include: {
+        user: { select: { id: true, firstName: true, lastName: true, email: true } },
+        meter: { select: { id: true, meterSerial: true, meterLabel: true } },
+      },
+    }),
+  ]);
+
+  res.json(toPaginatedResponse({ data: rows, page, limit, total }));
+});
+
+const updateDisputeSchema = z.object({
+  params: z.object({ id: z.string() }),
+  body: z.object({
+    status: z.enum(["OPEN", "UNDER_REVIEW", "RESOLVED", "REJECTED"]).optional(),
+    adminNotes: z.string().optional(),
+  }),
+});
+
+adminRouter.patch("/disputes/:id", validate(updateDisputeSchema), async (req, res) => {
+  const id = req.params.id as string;
+  const dispute = await prisma.dispute.findUnique({ where: { id } });
+  if (!dispute) throw new NotFoundError("Dispute not found");
+
+  const updated = await prisma.dispute.update({
+    where: { id },
+    data: {
+      ...(req.body.status ? { status: req.body.status as DisputeStatus } : {}),
+      ...(req.body.adminNotes !== undefined ? { adminNotes: req.body.adminNotes } : {}),
+      ...(req.body.status === "RESOLVED" ? { resolvedAt: new Date() } : {}),
+    },
+  });
+
+  res.json({ dispute: updated });
 });
 

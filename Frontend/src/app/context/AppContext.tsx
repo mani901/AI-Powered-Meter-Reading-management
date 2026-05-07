@@ -33,7 +33,7 @@ interface AppContextType {
   toggleSidebar: () => void;
   updateUserProfile: (updates: Partial<User>) => Promise<void>;
   updateUserStatus: (userId: string, isActive: boolean) => Promise<void>;
-  updateUserRole: (userId: string, role: 'ADMIN' | 'CONSUMER') => Promise<void>;
+  updateUserRole: (userId: string, role: UserRole) => Promise<void>;
   approveUser: (userId: string) => Promise<void>;
   rejectUser: (userId: string, reason?: string) => Promise<void>;
   approveMeter: (meterId: string) => Promise<void>;
@@ -61,28 +61,31 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const refreshData = useCallback(async () => {
     if (!currentUser) return;
-    const [metersRes, readingsRes, notificationsRes, billsRes, tariffsRes] = await Promise.all([
+    const [metersRes, notificationsRes, tariffsRes] = await Promise.all([
       apiFetch<{ data: Meter[] }>('/api/meters?limit=200'),
-      apiFetch<{ data: Reading[] }>('/api/readings?limit=500'),
       apiFetch<{ data: Notification[] }>('/api/notifications?limit=200'),
-      apiFetch<{ data: Bill[] }>('/api/bills?limit=200'),
       apiFetch<{ tariffs: Tariff[] }>(currentUser.role === 'ADMIN' ? '/api/tariffs/all' : '/api/tariffs'),
     ]);
     setMeters(metersRes.data);
-    setReadings(readingsRes.data);
     setNotifications(notificationsRes.data);
-    setBills(billsRes.data);
-    setTariffs(tariffsRes.tariffs);
+    setTariffs(tariffsRes.tariffs ?? []);
+
+    if (currentUser.role !== 'FIELD_STAFF') {
+      const [readingsRes, billsRes] = await Promise.all([
+        apiFetch<{ data: Reading[] }>('/api/readings?limit=500'),
+        apiFetch<{ data: Bill[] }>('/api/bills?limit=200'),
+      ]);
+      setReadings(readingsRes.data);
+      setBills(billsRes.data);
+    }
 
     if (currentUser.role === 'ADMIN') {
-      const [usersRes, pendingUsersRes, pendingMetersRes] = await Promise.all([
+      const [usersRes, pendingUsersRes] = await Promise.all([
         apiFetch<{ data: User[] }>('/api/admin/users?limit=500'),
         apiFetch<{ total: number }>('/api/admin/users/pending?limit=1'),
-        apiFetch<{ total: number }>('/api/admin/meters/pending?limit=1'),
       ]);
       setUsers(usersRes.data);
       setPendingUsersCount(pendingUsersRes.total ?? 0);
-      setPendingMetersCount(pendingMetersRes.total ?? 0);
     } else {
       setUsers([currentUser]);
     }
@@ -124,9 +127,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const res = await loginRequest(email, password);
       setCurrentUser(res.user as User);
       await refreshData();
-      return { success: true, message: 'Login successful' };
+      return { success: true, message: 'Login successful', role: (res.user as User).role };
     } catch (error) {
-      return { success: false, message: error instanceof Error ? error.message : 'Login failed' };
+      return { success: false, message: error instanceof Error ? error.message : 'Login failed', role: undefined };
     }
   }, [refreshData]);
 

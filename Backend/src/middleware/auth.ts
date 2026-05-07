@@ -1,6 +1,6 @@
 import type { RequestHandler } from "express";
 import { ForbiddenError, UnauthorizedError } from "../lib/errors.js";
-import { verifyAccessToken } from "../lib/jwt.js";
+import { verifyAccessToken, type UserRole } from "../lib/jwt.js";
 
 export const requireAuth: RequestHandler = (req, _res, next) => {
   try {
@@ -20,10 +20,11 @@ export const requireAuth: RequestHandler = (req, _res, next) => {
   }
 };
 
-export function requireRole(role: "ADMIN" | "CONSUMER"): RequestHandler {
+export function requireRole(roles: UserRole | UserRole[]): RequestHandler {
+  const allowed = Array.isArray(roles) ? roles : [roles];
   return (req, _res, next) => {
     if (!req.user) return next(new UnauthorizedError("Unauthorized"));
-    if (req.user.role !== role) return next(new ForbiddenError("Insufficient permissions"));
+    if (!allowed.includes(req.user.role as UserRole)) return next(new ForbiddenError("Insufficient permissions"));
     next();
   };
 }
