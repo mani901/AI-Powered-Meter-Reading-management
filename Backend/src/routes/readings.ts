@@ -5,7 +5,7 @@ import { requireAuth, requireRole } from "../middleware/auth.js";
 import { validate } from "../middleware/validate.js";
 import { upload } from "../middleware/upload.js";
 import { uploadImageBuffer } from "../services/storage/cloudinary.service.js";
-import { extractReadingFromImage } from "../services/ai/gemini.service.js";
+import { extractReadingFromImage } from "../services/ai/meter-reading.service.js";
 import { ForbiddenError, NotFoundError, ValidationError } from "../lib/errors.js";
 import { toPaginatedResponse, toPagination } from "../lib/response.js";
 import { getClientIp, getUserAgent } from "../middleware/audit.js";
@@ -38,10 +38,18 @@ readingsRouter.post(
     if (!meter) throw new NotFoundError("Meter not found");
     if (!await canSubmitReading(req.user!.id, req.user!.role, meterId)) throw new ForbiddenError("Only assigned field staff can submit readings");
 
-    const uploaded = await uploadImageBuffer({
-      buffer: req.file.buffer,
-      folder: "smartmeter/readings",
-    });
+    let imageUrl: string | null = null;
+    let imagePublicId: string | null = null;
+    try {
+      const uploaded = await uploadImageBuffer({
+        buffer: req.file.buffer,
+        folder: "smartmeter/readings",
+      });
+      imageUrl = uploaded.url;
+      imagePublicId = uploaded.publicId;
+    } catch {
+      // Cloudinary not configured — continue without image storage
+    }
 
     const meterType = meter.meterType === "ANALOG" ? "analog" : "digital";
     const ai = await extractReadingFromImage({ imageBuffer: req.file.buffer, meterType });
@@ -64,8 +72,8 @@ readingsRouter.post(
       consumption,
       isAnomalous,
       anomalyReason,
-      imageUrl: uploaded.url,
-      imagePublicId: uploaded.publicId,
+      imageUrl,
+      imagePublicId,
     });
   },
 );

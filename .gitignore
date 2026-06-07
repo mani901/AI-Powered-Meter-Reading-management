@@ -6,3 +6,8 @@ node_modules/
     .DS_Store
 pnpm-lock.yaml
 yarn.lock
+model/test/
+model/roi_crops/
+venv/
+model/output/
+model/__pycache__/
