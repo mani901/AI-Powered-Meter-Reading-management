@@ -35,10 +35,7 @@ if (isNaN(bcryptRounds) || bcryptRounds < 8 || bcryptRounds > 15) {
   throw new Error(`Invalid BCRYPT_ROUNDS: ${process.env.BCRYPT_ROUNDS}. Must be a number between 8 and 15.`);
 }
 
-if (!process.env.GEMINI_API_KEY) {
-  throw new Error("GEMINI_API_KEY environment variable is required.");
-}
-const geminiModel = process.env.GEMINI_MODEL || "gemini-2.0-flash";
+const meterAiUrl = process.env.METER_AI_URL || "http://localhost:8000";
 
 if (!process.env.CLOUDINARY_CLOUD_NAME) {
   throw new Error("CLOUDINARY_CLOUD_NAME environment variable is required.");
@@ -91,8 +88,7 @@ export const env = {
   JWT_ACCESS_TTL: jwtAccessTtl,
   JWT_REFRESH_TTL: jwtRefreshTtl,
   BCRYPT_ROUNDS: bcryptRounds,
-  GEMINI_API_KEY: process.env.GEMINI_API_KEY!,
-  GEMINI_MODEL: geminiModel,
+  METER_AI_URL: meterAiUrl,
   CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME!,
   CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY!,
   CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET!,
