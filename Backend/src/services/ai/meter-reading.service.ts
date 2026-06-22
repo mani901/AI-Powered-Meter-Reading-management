@@ -29,27 +29,26 @@ export async function extractReadingFromImage(args: {
 
   const json = (await response.json()) as {
     success: boolean;
-    reading: string;
+    reading: number | null;
     best_variant: string;
     confidence: number;
     num_digits: number;
   };
 
-  if (!json.success || json.reading === "NOT_FOUND") {
+  if (!json.success || json.reading === null || json.reading === undefined) {
     throw new Error(
       "Meter AI service could not extract a reading from the image.",
     );
   }
 
-  const readingValue = Number(json.reading);
-  if (!Number.isFinite(readingValue) || readingValue < 0) {
+  if (!Number.isFinite(json.reading) || json.reading < 0) {
     throw new Error(
       `Meter AI service returned invalid reading: ${json.reading}`,
     );
   }
 
   return {
-    readingValue,
+    readingValue: json.reading,
     confidenceScore: Math.max(0, Math.min(1, json.confidence)),
     meterType: args.meterType,
   };

@@ -11,6 +11,25 @@ digit_model = YOLO(str(MODEL_DIR / "best.pt"))
 
 app = FastAPI(title="Meter Reading API")
 
+# digit count → index after which to insert the decimal point
+_DOT_POSITIONS = {3: 1, 4: 3, 5: 3, 6: 4, 7: 5, 8: 6}
+
+
+def apply_dot_rule(digits: str):
+    """Return the meter reading as a float with the decimal placed by digit count."""
+    if not digits:
+        return None
+    n = len(digits)
+    if n in _DOT_POSITIONS:
+        pos = _DOT_POSITIONS[n]
+        formatted = digits[:pos] + "." + digits[pos:]
+    else:
+        formatted = digits
+    try:
+        return float(formatted)
+    except ValueError:
+        return None
+
 
 def get_clahe_variants(crop_img: np.ndarray) -> dict:
     variants = {}
@@ -90,7 +109,6 @@ def extract_reading(image_bytes: bytes) -> dict:
 
         if d_boxes is None or len(d_boxes) == 0:
             detections = []
-            reading = "NOT_FOUND"
         else:
             detections = []
             for b in d_boxes:
@@ -101,21 +119,25 @@ def extract_reading(image_bytes: bytes) -> dict:
                 detections.append((cx, class_names[cls], dconf))
 
             detections.sort(key=lambda x: x[0])
-            reading = "".join(d[1] for d in detections)
 
-        avg_conf = sum(d[2] for d in detections) / len(detections) if detections else 0.0
+        # keep only 0-9 digit characters; discard dots, "kwh", etc.
+        digit_detections = [d for d in detections if d[1].isdigit()]
+        digit_str = "".join(d[1] for d in digit_detections)
+        reading = apply_dot_rule(digit_str)
+
+        avg_conf = sum(d[2] for d in digit_detections) / len(digit_detections) if digit_detections else 0.0
 
         all_results[v_name] = {
             "reading":   reading,
             "avg_conf":  avg_conf,
-            "n_digits":  len(detections),
+            "n_digits":  len(digit_detections),
         }
 
     ranked = sorted(all_results.items(), key=lambda x: x[1]["avg_conf"], reverse=True)
     best_name, best_res = ranked[0]
 
     return {
-        "success":      True,
+        "success":      best_res["reading"] is not None,
         "reading":      best_res["reading"],
         "best_variant": best_name,
         "confidence":   round(best_res["avg_conf"], 4),
