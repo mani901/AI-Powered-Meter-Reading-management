@@ -2,7 +2,7 @@
 
 # ⚡ AI-Powered Meter Reading Management System
 
-**Automate utility meter reading with computer vision, streamline billing, and manage field operations — all in one platform.**
+**Automate utility meter reading with computer vision, streamline billing, and manage field operations all in one platform.**
 
 [![Node.js](https://img.shields.io/badge/Node.js-22+-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org)
 [![React](https://img.shields.io/badge/React-18.3-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev)
@@ -20,7 +20,7 @@
 
 ## Overview
 
-This is a **full-stack utility meter management platform** built as a Final Year Project. It uses **YOLO-based computer vision** to automatically extract readings from meter images, eliminating manual data entry errors. The system supports the complete lifecycle — from field staff uploading meter photos, through automated AI extraction, to bill generation and dispute resolution — across three distinct user roles.
+This is a **full-stack utility meter management platform** built as a Final Year Project. It uses **YOLO-based computer vision** to automatically extract readings from meter images, eliminating manual data entry errors. The system supports the complete lifecycle from field staff uploading meter photos, through automated AI extraction, to bill generation and dispute resolution across three distinct user roles.
 
 > Built with a React + Tailwind frontend, an Express + TypeScript REST API, a PostgreSQL database via Prisma ORM, and a Python FastAPI microservice serving two custom-trained YOLO models.
 
@@ -33,7 +33,7 @@ This is a **full-stack utility meter management platform** built as a Final Year
 - 8-variant image enhancement (CLAHE, bilateral filtering, gamma correction, morphology) with confidence scoring across all variants
 - Decimal point auto-insertion based on digit count
 - Source tracking: `AI_EXTRACTED`, `AI_CORRECTED`, or `MANUAL`
-- Confidence threshold enforcement — low-confidence readings are flagged for manual review
+- Confidence threshold enforcement low-confidence readings are flagged for manual review
 
 ### Meter & Reading Management
 - Register analog and digital meters with approval workflow
@@ -329,10 +329,6 @@ APP_URL="http://localhost:5173"
 DEFAULT_CONFIDENCE_THRESHOLD=0.75
 BILL_DUE_DAYS=15
 
-# Gemini (optional AI fallback)
-GEMINI_API_KEY="your_gemini_key"
-GEMINI_MODEL="gemini-2.0-flash"
-```
 
 ### Frontend (`Frontend/.env`)
 
