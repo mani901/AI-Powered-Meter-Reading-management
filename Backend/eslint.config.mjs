@@ -4,15 +4,25 @@ import tseslint from "typescript-eslint";
 export default tseslint.config(
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
+
   {
     rules: {
       "@typescript-eslint/no-unused-vars": [
         "error",
-        { argsIgnorePattern: "^_" },
+        {
+          argsIgnorePattern: "^_",
+        },
       ],
     },
   },
+
   {
-    ignores: ["dist/", "node_modules/", "coverage/", "jest.config.js", "vitest.config.ts"],
-  }
+    ignores: [
+      "dist/",
+      "node_modules/",
+      "coverage/",
+      "jest.config.js",
+      "vitest.config.ts",
+    ],
+  },
 );
